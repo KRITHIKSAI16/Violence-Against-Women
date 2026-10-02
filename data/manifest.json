@@ -1,0 +1,160 @@
+{
+  "source": "ExtrAnom",
+  "data_root": "data/sample",
+  "num_clips": 12,
+  "counts_per_category": {
+    "Assassination": 2,
+    "Chain_Snatching": 2,
+    "Harassment": 2,
+    "Kidnapping": 2,
+    "Normal": 2,
+    "Stalking": 2
+  },
+  "clips": [
+    {
+      "clip_id": "Assassination_v1",
+      "category": "Assassination",
+      "label": "pre_violence",
+      "source": "ExtrAnom",
+      "path": "data/sample/Assassination/Assassination_v1.mp4",
+      "duration_s": 6.44,
+      "fps": 29.97,
+      "frame_count": 193,
+      "width": 640,
+      "height": 220
+    },
+    {
+      "clip_id": "Assassination_v2",
+      "category": "Assassination",
+      "label": "pre_violence",
+      "source": "ExtrAnom",
+      "path": "data/sample/Assassination/Assassination_v2.mp4",
+      "duration_s": 8.733,
+      "fps": 30.0,
+      "frame_count": 262,
+      "width": 1278,
+      "height": 720
+    },
+    {
+      "clip_id": "Chain_Snatching_v1",
+      "category": "Chain_Snatching",
+      "label": "pre_violence",
+      "source": "ExtrAnom",
+      "path": "data/sample/Chain_Snatching/Chain_Snatching_v1.mp4",
+      "duration_s": 7.96,
+      "fps": 25.0,
+      "frame_count": 199,
+      "width": 608,
+      "height": 390
+    },
+    {
+      "clip_id": "Chain_Snatching_v2",
+      "category": "Chain_Snatching",
+      "label": "pre_violence",
+      "source": "ExtrAnom",
+      "path": "data/sample/Chain_Snatching/Chain_Snatching_v2.mp4",
+      "duration_s": 13.6,
+      "fps": 30.0,
+      "frame_count": 408,
+      "width": 608,
+      "height": 818
+    },
+    {
+      "clip_id": "Harassment_v3",
+      "category": "Harassment",
+      "label": "pre_violence",
+      "source": "ExtrAnom",
+      "path": "data/sample/Harassment/Harassment_v3.mp4",
+      "duration_s": 7.333,
+      "fps": 30.0,
+      "frame_count": 220,
+      "width": 670,
+      "height": 720
+    },
+    {
+      "clip_id": "Harassment_v5",
+      "category": "Harassment",
+      "label": "pre_violence",
+      "source": "ExtrAnom",
+      "path": "data/sample/Harassment/Harassment_v5.mp4",
+      "duration_s": 12.033,
+      "fps": 30.0,
+      "frame_count": 361,
+      "width": 1280,
+      "height": 716
+    },
+    {
+      "clip_id": "Kidnapping_v28",
+      "category": "Kidnapping",
+      "label": "pre_violence",
+      "source": "ExtrAnom",
+      "path": "data/sample/Kidnapping/Kidnapping_v28.mp4",
+      "duration_s": 10.567,
+      "fps": 30.0,
+      "frame_count": 317,
+      "width": 696,
+      "height": 560
+    },
+    {
+      "clip_id": "Kidnapping_v41",
+      "category": "Kidnapping",
+      "label": "pre_violence",
+      "source": "ExtrAnom",
+      "path": "data/sample/Kidnapping/Kidnapping_v41.mp4",
+      "duration_s": 11.967,
+      "fps": 30.0,
+      "frame_count": 359,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "clip_id": "Normal_v1",
+      "category": "Normal",
+      "label": "normal",
+      "source": "ExtrAnom",
+      "path": "data/sample/Normal/Normal_v1.mp4",
+      "duration_s": 5.033,
+      "fps": 30.0,
+      "frame_count": 151,
+      "width": 478,
+      "height": 612
+    },
+    {
+      "clip_id": "Normal_v6",
+      "category": "Normal",
+      "label": "normal",
+      "source": "ExtrAnom",
+      "path": "data/sample/Normal/Normal_v6.mp4",
+      "duration_s": 13.767,
+      "fps": 30.0,
+      "frame_count": 413,
+      "width": 478,
+      "height": 608
+    },
+    {
+      "clip_id": "Stalking_v3",
+      "category": "Stalking",
+      "label": "pre_violence",
+      "source": "ExtrAnom",
+      "path": "data/sample/Stalking/Stalking_v3.mp4",
+      "duration_s": 21.4,
+      "fps": 30.0,
+      "frame_count": 642,
+      "width": 850,
+      "height": 480
+    },
+    {
+      "clip_id": "Stalking_v9",
+      "category": "Stalking",
+      "label": "pre_violence",
+      "source": "ExtrAnom",
+      "path": "data/sample/Stalking/Stalking_v9.mp4",
+      "duration_s": 13.066,
+      "fps": 30.077,
+      "frame_count": 393,
+      "width": 850,
+      "height": 718
+    }
+  ],
+  "skipped": []
+}

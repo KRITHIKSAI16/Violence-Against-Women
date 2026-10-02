@@ -1,0 +1,7 @@
+# Config for the ExtrAnom Phase 1 pipeline (M1-M9).
+# On Colab, override data_root with the Drive path; no code changes needed.
+source: ExtrAnom
+data_root: data/sample
+manifest_path: data/manifest.json
+normal_category: Normal
+video_extensions: [".mp4", ".avi", ".mov", ".mkv"]
