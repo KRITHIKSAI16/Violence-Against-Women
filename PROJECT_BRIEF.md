@@ -269,16 +269,17 @@ permitting within Phase 1.
 
 ## 7. Working style / constraints
 
-- Code lives in a git repo as real `.py` modules, not notebook cells.
+- Code lives in a git repo as real `.py` modules, not notebook cells. Teammates run
+  it on their laptops and on Colab (`colab/` folder).
   Claude Code works on this repo locally, on the user's laptop.
 - Google Colab is used ONLY for GPU-heavy batch runs against the full
   Drive-hosted dataset. Colab pulls the repo via `git pull` and runs it;
   no hand-written pipeline logic lives in Colab cells — cells are limited
   to: mount Drive, clone/pull repo, install requirements, invoke a script,
   inspect output.
-- **The user pushes to GitHub manually** — Claude Code should not run
-  `git push`. It's fine for Claude Code to run `git add`/`git commit`
-  locally if asked, but pushing is the user's own step.
+- **Git:** as of 2026-10-02 the user authorized Claude Code to commit AND push to
+  `origin main` itself (no force-push, never commit videos/Drive data). The repo is
+  shared with 3 teammates, so keep commits small and traceable to a module.
 - Prefers code delivered in clear, individually runnable pieces/cells where
   relevant, with the "why" behind each step explained, not just code
   dumped with no rationale.

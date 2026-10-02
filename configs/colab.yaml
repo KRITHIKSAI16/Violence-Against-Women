@@ -1,0 +1,16 @@
+# Colab config: same keys as extran.yaml, pointed at Google Drive.
+# Edit DRIVE_DATA / DRIVE_OUT below if your Drive folder names differ.
+# data_root: the ExtrAnom folder (added as a shortcut to My Drive; see colab/README.md)
+# Outputs go to Drive so cleaned clips and manifests survive the Colab session.
+source: ExtrAnom
+data_root: /content/drive/MyDrive/ExtrAnom
+manifest_path: /content/drive/MyDrive/VAW_results/manifest.json
+normal_category: Normal
+video_extensions: [".mp4", ".avi", ".mov", ".mkv"]
+
+preprocess:
+  processed_dir: /content/drive/MyDrive/VAW_results/processed
+  clean_manifest_path: /content/drive/MyDrive/VAW_results/manifest_clean.json
+  target_fps: 30
+  max_side: 640
+  denoise: false

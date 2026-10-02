@@ -5,7 +5,7 @@ This file tracks where the project actually stands, updated as work happens.
 spec, constraints) and should not need to change often. This file changes
 often — read it to know what's actually done vs. still TODO.
 
-Last updated: 2026-10-02
+Last updated: 2026-10-02 (end of session 1)
 
 ---
 
@@ -29,17 +29,15 @@ M3–M7 are the natural next set once that track is solid.
 
 ## Repo / environment setup status
 
-- [x] ExtrAnom sample data in place: `data/sample/<Category>/`, 2 clips each,
-      6 categories (12 clips total)
+- [x] ExtrAnom sample data in place: `data/sample/<Category>/`, 2 clips each (local only, git-ignored)
 - [x] Claude Code installed and pointed at the project folder (VAW)
-- [~] Minimal scaffold created (configs/extran.yaml, src/config.py, requirements.txt, .gitignore); no README yet. Clips moved ExtrAtom/ -> data/sample/, 'Assasination' -> 'Assassination'
-- [ ] Git repo initialized locally
-- [ ] GitHub repo created (private) and remote connected
-- [ ] First commit + push done
+- [x] Minimal scaffold: `configs/`, `src/`, `tests/`, `requirements.txt`, `.gitignore`, `README.md`, `CLAUDE.md`, `docs/`
+- [x] Git repo, private GitHub repo `KRITHIKSAI16/Violence-Against-Women`, pushed
+- [x] `tests/` for M1 + M2 (12 pytest tests pass)
+- [x] `colab/` folder: `01_setup_and_m1_m2.ipynb`, `colab/README.md`, `configs/colab.yaml` (not yet run on Colab)
 - [ ] Teammates added as collaborators on GitHub
-- [ ] Colab notebook set up to `git pull` the repo and mount Drive
-- [ ] ExtrAnom Drive folder added as a shortcut to "My Drive" (needed for
-      reliable Colab access — unconfirmed if done yet)
+- [ ] ExtrAnom Drive folder added as a shortcut to "My Drive" + `GITHUB_TOKEN` Colab secret (see `colab/README.md`)
+- [ ] First Colab run of notebook 01 on the full set
 
 ## Decisions made this session (2026-10-02)
 
@@ -68,7 +66,14 @@ M3–M7 are the natural next set once that track is solid.
   it's a self-contained track per the report's own figure (M8–M9 run in
   parallel with M1–M7, not after).
 
+- **Git policy changed:** user authorized Claude to commit and push to `origin main` (no force-push, no data files).
+- **Phase 1 plan agreed** (see `docs/PHASE1_PLAN.md`): M8 split into M8a (track+pose, cached) and M8b (scoring), then
+  M9 gate and a per-category buildup report. `b_ij` uses nearest frame edge as stand-in exit (pending user's final confirm).
+
 ## Immediate next steps (in order)
+
+0. (done) Steps 1-2 below plus tests and the Colab folder. Next real work: confirm `b_ij` choice and OK to
+   download yolov8n-pose.pt + torch, then build **M8a**.
 
 1. Confirm the scaffolding prompt finished correctly — check the folder
    tree Claude Code produced, confirm `data/sample/` was untouched.
