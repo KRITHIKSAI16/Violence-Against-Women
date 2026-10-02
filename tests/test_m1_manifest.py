@@ -48,3 +48,25 @@ def test_output_is_deterministic(mini_corpus):
 def test_missing_data_root_raises(tmp_path):
     with pytest.raises(FileNotFoundError):
         build_manifest(tmp_path / "nope", "ExtrAnom", "Normal", EXTS)
+
+
+def test_probe_falls_back_to_ffprobe_when_opencv_cannot_decode(make_video, tmp_path, monkeypatch):
+    import shutil
+    if shutil.which("ffprobe") is None:
+        pytest.skip("ffprobe not installed")
+    import src.data.manifest as mf
+    p = make_video(tmp_path / "a.mp4", w=320, h=180, fps=25.0, n_frames=50)
+
+    def boom(_):
+        raise ValueError("first frame could not be decoded")  # what an AV1 file does on Colab
+    monkeypatch.setattr(mf, "_probe_cv2", boom)
+    meta = mf.probe_video(p)
+    assert (meta["width"], meta["height"], meta["frame_count"]) == (320, 180, 50)
+    assert meta["fps"] == pytest.approx(25.0)
+
+
+def test_corrupt_file_still_rejected_when_both_probes_fail(tmp_path):
+    bad = tmp_path / "bad.mp4"
+    bad.write_bytes(b"garbage")
+    with pytest.raises(ValueError):
+        probe_video(bad)

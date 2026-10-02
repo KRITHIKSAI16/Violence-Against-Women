@@ -98,6 +98,13 @@ M3–M7 are the natural next set once that track is solid.
    M4 (feature caching) → M5 (EDA) → M6 (baseline classifier) → M7
    (benchmark evaluation).
 
+## First Colab run (2026-10-03) - findings
+- Full ExtrAnom on Drive = **790 clips**, not ~140-150: Assassination 23, Chain_Snatching 176, Harassment 188,
+  Kidnapping 70, Normal 294, Stalking 39 (heavily imbalanced; Stalking, the key category, is the smallest big one).
+  M8a on 790 clips will take roughly 65x the 12-clip time on CPU; use the GPU runtime.
+- 3 Kidnapping clips (v2, v3, v6) are AV1: OpenCV on Colab cannot decode them. Fixed: M1 falls back to ffprobe
+  for metadata, M2 re-encodes via ffmpeg to H.264. Re-run notebook 01 after `git pull`.
+
 ## Open questions / things to confirm with supervisor or team
 
 - Exact values for Algorithm 1's weights (`w1, w2, w3`) and trigger
