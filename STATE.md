@@ -20,7 +20,7 @@ Last updated: 2026-10-02 (end of session 1)
 | M5 | Exploratory Data Analysis | Not started | |
 | M6 | Baseline Classifier | Not started | |
 | M7 | Benchmark Evaluation | Not started | |
-| M8 | Adaptive Suspicious Activity Screening (ASSM) | M8a built, M8b not started | M8a `src/assm/track_poses.py`: YOLOv8n-pose + ByteTrack, caches tracks to `data/tracks/*.npz`; run on the 12 samples (CPU, ~3 min). Known limit: small/distant people missed at conf 0.4/640 (Assassination_v1: 0 people, Stalking_v9: never 2+). M8b = Algorithm 1 scoring still TODO |
+| M8 | Adaptive Suspicious Activity Screening (ASSM) | M8a + M8b built, tested locally | M8a `track_poses.py` (YOLOv8n-pose + ByteTrack -> `data/tracks`); M8b `interaction.py` (Algorithm 1: d in body heights, closing speed, b_ij with frame-edge exit -> `data/scores/*_pairs.csv`, `*_curve.csv`); tools `render.py` (annotated video) and `hand_check.py` (independent recompute, all OK). Known limits: small/distant people missed (Assassination_v1, Stalking_v9 = no interaction); `v` spikes on jittery/false boxes (Normal_v6). Weights still 1/1/1, tau not chosen. See `docs/VERIFY_M8.md`. Not yet run on Colab |
 | M9 | Selective Activation | Not started | Depends on M8 |
 
 **Committed Phase 1 deliverable = M1 → M2 → M8 → M9** (independent track,

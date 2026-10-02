@@ -22,3 +22,12 @@ assm:
   imgsz: 640
   device: auto
   tracks_dir: /content/drive/MyDrive/VAW_results/tracks
+  # M8b Algorithm 1 (starting values: equal weights, tune on the full set)
+  w1: 1.0                # weight on 1/d  (d in body heights)
+  w2: 1.0                # weight on closing speed (body heights per second)
+  w3: 1.0                # weight on path obstruction b_ij (0 disables it)
+  lag_frames: 5          # closing speed measured over up to this many frames
+  d_floor: 0.25          # smallest d used in 1/d (avoids blow-up when boxes overlap)
+  corridor: 1.0          # j blocks i if within this many body heights of the i->exit line
+  kpt_conf: 0.5          # keypoint confidence needed to count in the pose centroid
+  scores_dir: /content/drive/MyDrive/VAW_results/scores     # M8b output

@@ -18,6 +18,9 @@ All logic is in `src/`, so the same code runs on a laptop and on Colab.
 |---|---|---|
 | `01_setup_and_m1_m2.ipynb` | tests, M1 manifest, M2 preprocess, sanity checks | `manifest.json`, `processed/`, `manifest_clean.json` |
 | `02_m8a_track_poses.ipynb` | M8a: YOLOv8n-pose + ByteTrack on all cleaned clips (GPU) | `tracks/<Category>/*.npz`, `previews/` |
+| `03_m8b_interaction_scores.ipynb` | M8b: Algorithm 1 scores (CPU), per-category summary, annotated video, hand check | `scores/<Category>/*_pairs.csv`, `*_curve.csv`, `scores/videos/` |
+
+Run in order 01 -> 02 -> 03.
 
 More notebooks are added as modules (M8, M9, report) are built.
 
