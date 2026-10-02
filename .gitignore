@@ -7,3 +7,4 @@ data/sample/
 *.avi
 *.mov
 *.mkv
+data/processed/

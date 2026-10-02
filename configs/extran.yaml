@@ -5,3 +5,11 @@ data_root: data/sample
 manifest_path: data/manifest.json
 normal_category: Normal
 video_extensions: [".mp4", ".avi", ".mov", ".mkv"]
+
+# M2 preprocessing
+preprocess:
+  processed_dir: data/processed
+  clean_manifest_path: data/manifest_clean.json
+  target_fps: 30          # resample every clip to this frame rate
+  max_side: 640           # longest side in pixels; aspect ratio kept (no distortion)
+  denoise: false          # light hqdn3d denoise; off by default, see README/STATE notes

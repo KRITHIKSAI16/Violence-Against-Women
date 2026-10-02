@@ -14,7 +14,7 @@ Last updated: 2026-10-02
 | # | Module | Status | Notes |
 |---|--------|--------|-------|
 | M1 | Data Acquisition | Built, tested locally | `src/data/manifest.py` writes `data/manifest.json` (12/12 sample clips, 0 skipped; corrupt-file skip tested). Not yet run on full Drive set (Colab) |
-| M2 | Preprocessing | Not started | |
+| M2 | Preprocessing | Built, tested locally | `src/data/preprocess.py`: ffmpeg re-encode to 30 fps, longest side 640 (aspect kept), denoise off by default; writes data/processed/ + data/manifest_clean.json. 12/12 ok; corrupt-file skip tested. Not yet run on full set |
 | M3 | Pre-Violence Segment Identification | Not started | No annotation needed — uses ExtrAnom folder names as native labels directly (see PROJECT_BRIEF.md §3) |
 | M4 | Feature Engineering & Caching | Not started | |
 | M5 | Exploratory Data Analysis | Not started | |
