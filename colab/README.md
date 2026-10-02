@@ -17,6 +17,7 @@ All logic is in `src/`, so the same code runs on a laptop and on Colab.
 | Notebook | What it runs | Output (in Drive `VAW_results/`) |
 |---|---|---|
 | `01_setup_and_m1_m2.ipynb` | tests, M1 manifest, M2 preprocess, sanity checks | `manifest.json`, `processed/`, `manifest_clean.json` |
+| `02_m8a_track_poses.ipynb` | M8a: YOLOv8n-pose + ByteTrack on all cleaned clips (GPU) | `tracks/<Category>/*.npz`, `previews/` |
 
 More notebooks are added as modules (M8, M9, report) are built.
 

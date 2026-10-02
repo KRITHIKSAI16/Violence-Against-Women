@@ -1,3 +1,6 @@
 opencv-python
 pyyaml
 pytest
+ultralytics
+lapx
+numpy

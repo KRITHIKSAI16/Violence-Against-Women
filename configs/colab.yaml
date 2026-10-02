@@ -14,3 +14,11 @@ preprocess:
   target_fps: 30
   max_side: 640
   denoise: false
+
+assm:
+  model: models/yolov8n-pose.pt
+  tracker: bytetrack.yaml
+  conf: 0.4
+  imgsz: 640
+  device: auto
+  tracks_dir: /content/drive/MyDrive/VAW_results/tracks

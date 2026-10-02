@@ -20,7 +20,7 @@ Last updated: 2026-10-02 (end of session 1)
 | M5 | Exploratory Data Analysis | Not started | |
 | M6 | Baseline Classifier | Not started | |
 | M7 | Benchmark Evaluation | Not started | |
-| M8 | Adaptive Suspicious Activity Screening (ASSM) | Partial | YOLOv8-Pose detection working (from earlier UCF-Crime work, needs re-pointing at ExtrAnom); ByteTrack not yet added; Algorithm 1 scoring (distance/closing-speed/path-obstruction) not yet implemented |
+| M8 | Adaptive Suspicious Activity Screening (ASSM) | M8a built, M8b not started | M8a `src/assm/track_poses.py`: YOLOv8n-pose + ByteTrack, caches tracks to `data/tracks/*.npz`; run on the 12 samples (CPU, ~3 min). Known limit: small/distant people missed at conf 0.4/640 (Assassination_v1: 0 people, Stalking_v9: never 2+). M8b = Algorithm 1 scoring still TODO |
 | M9 | Selective Activation | Not started | Depends on M8 |
 
 **Committed Phase 1 deliverable = M1 → M2 → M8 → M9** (independent track,

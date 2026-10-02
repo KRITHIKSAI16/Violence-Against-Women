@@ -13,3 +13,12 @@ preprocess:
   target_fps: 30          # resample every clip to this frame rate
   max_side: 640           # longest side in pixels; aspect ratio kept (no distortion)
   denoise: false          # light hqdn3d denoise; off by default, see README/STATE notes
+
+# M8 ASSM
+assm:
+  model: models/yolov8n-pose.pt      # downloaded automatically by ultralytics if missing
+  tracker: bytetrack.yaml            # ultralytics built-in ByteTrack config
+  conf: 0.4
+  imgsz: 640
+  device: auto                       # auto = cuda if available, else cpu
+  tracks_dir: data/tracks            # M8a output: one .npz per clip

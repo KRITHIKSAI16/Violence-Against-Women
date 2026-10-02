@@ -8,3 +8,6 @@ data/sample/
 *.mov
 *.mkv
 data/processed/
+models/*.pt
+data/tracks/
+data/previews/
