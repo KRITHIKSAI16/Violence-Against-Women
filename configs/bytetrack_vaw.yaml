@@ -1,0 +1,10 @@
+# ByteTrack settings for the VAW pipeline (M8a). Differences from Ultralytics' default bytetrack.yaml:
+# the model is run at a LOW conf (assm.conf) so ByteTrack's second, low-confidence association pass
+# really runs; new tracks still need a confident box (new_track_thresh); lost tracks are kept longer.
+tracker_type: bytetrack
+track_high_thresh: 0.4
+track_low_thresh: 0.1
+new_track_thresh: 0.4
+track_buffer: 90
+match_thresh: 0.8
+fuse_score: True

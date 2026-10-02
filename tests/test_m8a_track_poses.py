@@ -73,3 +73,46 @@ def test_run_is_resumable_and_skips_failures(make_video, tmp_path):
     m = (out / "Normal" / "ok.npz").stat().st_mtime_ns
     run(clean, cfg, out)
     assert (out / "Normal" / "ok.npz").stat().st_mtime_ns == m  # not recomputed
+
+
+# ---- stitch_tracks ----
+from src.assm.track_poses import stitch_tracks
+
+
+def _tr(entries):
+    """entries: (frame, id, cx, cy, h) -> packed tracks."""
+    rows = [(f, i, np.array([cx - 15, cy - h / 2, cx + 15, cy + h / 2], np.float32), 0.9, KP)
+            for f, i, cx, cy, h in entries]
+    return pack_tracks(rows, 30, 640, 360, 200)
+
+
+def _ids(t):
+    return t["track_id"].tolist()
+
+
+def test_stitch_joins_same_person_after_short_gap():
+    t = _tr([(f, 1, 100, 200, 80) for f in range(0, 20)] + [(f, 2, 104, 200, 82) for f in range(30, 50)])
+    s = stitch_tracks(t)
+    assert len(set(_ids(s))) == 1
+    assert set(s["raw_track_id"].tolist()) == {1, 2}  # raw ids preserved
+
+
+def test_stitch_never_merges_people_seen_together():
+    t = _tr([(f, 1, 100, 200, 80) for f in range(0, 30)] + [(f, 2, 110, 200, 80) for f in range(10, 40)])
+    assert len(set(_ids(stitch_tracks(t)))) == 2
+
+
+def test_stitch_respects_gap_distance_and_size_limits():
+    base = [(f, 1, 100, 200, 80) for f in range(0, 20)]
+    far_gap = _tr(base + [(f, 2, 100, 200, 80) for f in range(120, 140)])       # 100-frame gap
+    far_pos = _tr(base + [(f, 2, 400, 200, 80) for f in range(30, 50)])         # jumped ~4 body heights
+    diff_size = _tr(base + [(f, 2, 100, 200, 200) for f in range(30, 50)])      # 2.5x taller
+    for t in (far_gap, far_pos, diff_size):
+        assert len(set(_ids(stitch_tracks(t)))) == 2
+
+
+def test_stitch_chains_multiple_fragments_and_handles_empty():
+    t = _tr([(0, 1, 100, 200, 80), (1, 1, 100, 200, 80), (10, 2, 102, 200, 80), (11, 2, 102, 200, 80),
+             (20, 3, 104, 200, 80), (21, 3, 104, 200, 80)])
+    assert len(set(_ids(stitch_tracks(t)))) == 1
+    assert stitch_tracks(pack_tracks([], 30, 640, 360, 5))["track_id"].shape == (0,)

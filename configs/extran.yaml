@@ -17,9 +17,12 @@ preprocess:
 # M8 ASSM
 assm:
   model: models/yolov8n-pose.pt      # downloaded automatically by ultralytics if missing
-  tracker: bytetrack.yaml            # ultralytics built-in ByteTrack config
-  conf: 0.4
+  tracker: configs/bytetrack_vaw.yaml  # ByteTrack settings (see that file)
+  conf: 0.1                          # model floor; ByteTrack's own thresholds (0.4 high / 0.1 low) decide
   imgsz: 640
+  stitch: true                       # join broken tracklets of one person (stitch_tracks)
+  stitch_max_gap: 45                 # frames a person may vanish and still be re-joined
+  stitch_max_dist: 1.5               # max jump in body heights between end and restart
   device: auto                       # auto = cuda if available, else cpu
   tracks_dir: data/tracks            # M8a output: one .npz per clip
   # M8b Algorithm 1 (starting values: equal weights, tune on the full set)

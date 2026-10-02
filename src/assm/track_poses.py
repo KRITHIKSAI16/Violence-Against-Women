@@ -6,7 +6,8 @@ to run again when weights/thresholds change:
 
   data/tracks/<Category>/<clip_id>.npz
     frame_idx (N,)   int32    0-based frame number
-    track_id  (N,)   int32    persistent ByteTrack identity
+    track_id  (N,)   int32    persistent identity (ByteTrack id, after stitch_tracks)
+    raw_track_id (N,) int32   the id exactly as ByteTrack gave it (before stitching)
     bbox      (N,4)  float32  x1,y1,x2,y2 in pixels
     conf      (N,)   float32  detection confidence
     kpts      (N,17,3) float32  COCO keypoints x, y, keypoint-confidence
@@ -36,6 +37,7 @@ def pack_tracks(rows, fps, width, height, n_frames):
     return {
         "frame_idx": np.array([r[0] for r in rows], np.int32).reshape(n),
         "track_id": np.array([r[1] for r in rows], np.int32).reshape(n),
+        "raw_track_id": np.array([r[1] for r in rows], np.int32).reshape(n),
         "bbox": np.array([r[2] for r in rows], np.float32).reshape(n, 4),
         "conf": np.array([r[3] for r in rows], np.float32).reshape(n),
         "kpts": np.array([r[4] for r in rows], np.float32).reshape(n, N_KPTS, 3),
@@ -48,6 +50,50 @@ def load_tracks(path):
     """Load a cached track file into a plain dict of arrays."""
     with np.load(path) as z:
         return {k: z[k] for k in z.files}
+
+
+def stitch_tracks(t, max_gap=45, max_dist=1.5, size_ratio=1.7):
+    """Join broken tracklets of the same person (ByteTrack matches on box overlap only, so a
+    small or fast person can get a new id after a short detection gap).
+
+    Tracklet B is attached to an earlier chain A when A ended before B starts, the gap is at most
+    `max_gap` frames, A's last position is within `max_dist` body heights of B's first position,
+    and the heights agree within `size_ratio`. A and B never overlap in time, so two people seen
+    together are never merged. Returns a copy of `t` with `track_id` rewritten (raw ids kept).
+    """
+    out = dict(t)
+    ids = t["raw_track_id"]
+    if len(ids) == 0:
+        return out
+    info = {}
+    for tid in sorted(set(ids.tolist())):
+        k = np.where(ids == tid)[0]
+        k = k[np.argsort(t["frame_idx"][k])]
+        b = t["bbox"][k]
+        c = np.stack([(b[:, 0] + b[:, 2]) / 2, (b[:, 1] + b[:, 3]) / 2], 1)
+        info[tid] = {"first": int(t["frame_idx"][k[0]]), "last": int(t["frame_idx"][k[-1]]),
+                     "c0": c[0], "c1": c[-1], "h": float((b[:, 3] - b[:, 1]).mean())}
+    chains = {}   # chain id -> {last, c1, h}
+    label = {}
+    for tid in sorted(info, key=lambda x: info[x]["first"]):
+        a = info[tid]
+        best, best_d = None, None
+        for cid, ch in chains.items():
+            gap = a["first"] - ch["last"]
+            if not 0 < gap <= max_gap:
+                continue
+            ratio = max(a["h"], ch["h"]) / max(min(a["h"], ch["h"]), 1e-6)
+            d = float(np.linalg.norm(a["c0"] - ch["c1"])) / ((a["h"] + ch["h"]) / 2)
+            if ratio <= size_ratio and d <= max_dist and (best is None or d < best_d):
+                best, best_d = cid, d
+        if best is None:
+            chains[tid] = {"last": a["last"], "c1": a["c1"], "h": a["h"]}
+            label[tid] = tid
+        else:
+            chains[best].update(last=a["last"], c1=a["c1"], h=a["h"])
+            label[tid] = best
+    out["track_id"] = np.array([label[i] for i in ids.tolist()], np.int32)
+    return out
 
 
 def _device(setting):
@@ -63,9 +109,11 @@ def track_clip(video_path, cfg, fps, width, height):
 
     # A fresh model per clip resets ByteTrack state, so IDs never leak between clips.
     model = YOLO(str(resolve_path(cfg["model"])))
+    tracker = resolve_path(cfg["tracker"])
+    tracker = str(tracker) if tracker.exists() else cfg["tracker"]  # else an Ultralytics built-in name
     rows, n_frames = [], 0
     stream = model.track(source=str(video_path), stream=True, persist=True,
-                         tracker=cfg["tracker"], conf=cfg["conf"], imgsz=cfg["imgsz"],
+                         tracker=tracker, conf=cfg["conf"], imgsz=cfg["imgsz"],
                          device=_device(cfg["device"]), verbose=False)
     for i, r in enumerate(stream):
         n_frames = i + 1
@@ -77,7 +125,10 @@ def track_clip(video_path, cfg, fps, width, height):
         kp = r.keypoints.data.cpu().numpy()  # (n,17,3)
         for k in range(len(ids)):
             rows.append((i, ids[k], xyxy[k], conf[k], kp[k]))
-    return pack_tracks(rows, fps, width, height, n_frames)
+    t = pack_tracks(rows, fps, width, height, n_frames)
+    if cfg.get("stitch", True):
+        t = stitch_tracks(t, cfg["stitch_max_gap"], cfg["stitch_max_dist"])
+    return t
 
 
 def clip_summary(t):
@@ -88,6 +139,7 @@ def clip_summary(t):
         "frames": n_frames,
         "rows": int(len(t["frame_idx"])),
         "unique_ids": int(len(set(t["track_id"].tolist()))),
+        "raw_ids": int(len(set(t["raw_track_id"].tolist()))) if "raw_track_id" in t else None,
         "frames_with_1plus": len(per_frame),
         "frames_with_2plus": sum(1 for v in per_frame.values() if v >= 2),
         "max_people": max(per_frame.values(), default=0),
@@ -139,8 +191,8 @@ def run(clean_manifest, cfg, tracks_dir, limit=None, force=False, preview_dir=No
             continue
         s = {"clip_id": c["clip_id"], "category": c["category"], **clip_summary(t)}
         summaries.append(s)
-        log.info("%-20s frames=%-4d ids=%-3d 2+people=%-4d max=%d", s["clip_id"], s["frames"],
-                 s["unique_ids"], s["frames_with_2plus"], s["max_people"])
+        log.info("%-20s frames=%-4d ids=%-3d (raw %-3s) 2+people=%-4d max=%d", s["clip_id"], s["frames"],
+                 s["unique_ids"], s["raw_ids"], s["frames_with_2plus"], s["max_people"])
         if preview_dir:
             render_preview(video, t, Path(preview_dir) / c["category"] / f"{c['clip_id']}.jpg")
     return summaries, failed

@@ -16,7 +16,7 @@ Columns: **d** = distance between the two people in *body heights* (1 = about on
 ## Check 1: does the video agree with what you see? (2 minutes per clip)
 Laptop: `python -m src.assm.render Stalking_v3 --tau 3.0` -> open `data/scores/videos/Stalking_v3.mp4`.
 Colab: notebook 03, section 3. Look for:
-- every real person has a green box with a stable `id` (does the id stay on the same person? ids that flip = tracking problem);
+- every real person has a green box with a stable `id` (does the id stay on the same person? ids that flip = tracking problem). M8a re-joins broken tracks automatically (`stitch_tracks`); the original ByteTrack id is kept in the `.npz` as `raw_track_id`, so you can see how many ids were merged. Any remaining flips can be tuned in `configs/extran.yaml` (`stitch_max_gap`, `stitch_max_dist`) and `configs/bytetrack_vaw.yaml`;
 - the line joins the two people the score is about; `d` small when they are close, `v` positive while one approaches;
 - the curve at the bottom rises when you see the behavior build up. Pay attention to the **false peaks**: a box on a chair or a
   box that jumps for a frame gives a `v` spike (seen in Normal_v6). That is why M9 will require a score to stay high for
