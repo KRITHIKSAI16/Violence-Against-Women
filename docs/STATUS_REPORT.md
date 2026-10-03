@@ -24,7 +24,7 @@ evaluation, not a classifier. A small human-annotated benchmark (about 60 clips,
 | M8 ASSM (a) detection + pose + tracking | YOLOv8n-pose + ByteTrack, identity stitching | done, run on all clips |
 | M8 ASSM (b) Algorithm 1 interaction score | `1/d + closing speed + path blocking` | done, run on all clips; **does not separate categories** (see section 5) |
 | M9 Selective activation | first version: rule gate with five behavior states; **now superseded** by the deep context layer below | done, kept as the baseline |
-| **Deep context layer** (new, `src/context/`) | camera motion, meters, body-pose facing/contact/reach, lagged following, scene layout, depth, scene graph, narrative | built and tested; Stage A and the evaluation run on Colab; scene/depth/story/report notebooks (07, 08) ready to run |
+| **Deep context layer** (new, `src/context/`) | camera motion, meters, body-pose facing/contact/reach, lagged following, scene layout, depth, scene graph, narrative | built, tested and run on Colab (all 793 clips): Stage A, evaluation, scene layout + depth (nb 07), stories + report page (nb 08) |
 | M3-M7 (segments, features, EDA, baseline, benchmark) | covered in a controlled form by the evaluation (`learn.py`) and the annotation benchmark | evaluation run on Colab; benchmark waiting for the team's annotations |
 | Phase II (M10-M13) | prediction, lead time, memory model | not started, by design |
 
@@ -94,6 +94,15 @@ Reading: **(a) source leakage** - original resolution/frame rate identify Normal
 **(c)** the 0.69 among clips with a pair most likely comes from correlates of framing (distance to camera, pair age), not from threatening behavior; **(d)** the labels are the clip's *category*, not what
 happens each second: a Chain_Snatching clip is mostly a sudden snatch with no visible buildup, a Normal clip can contain people walking up behind each other.
 
+### 5.35 Scene layout, depth and the final stories (notebooks 07 and 08, all 793 clips)
+* Scene layout: place type outdoor 163, indoor 60, **unknown 570** (conservative on purpose); 481 layouts judged reliable, 312 not (moving camera or low confidence); 80 doors found in total; 152 clips low light.
+  Depth Anything vs box height, who is nearer on frames where both are decisive: agree 0.65 on average over 369 clips (1.00 and 0.83 on the two sample clips checked): meters are rough, orderings are usable.
+* Scene-graph stories, share of clips with the cue (Normal / others): any concern cue 41% / 41-49%; contact 29% / 26-37%; reaching 12% / 8-22%; pinned against a wall or vehicle 7% / 5-14%; mutual facing (benign) 10% / 0-8%;
+  following 1% / 1-4%; approach from behind 5% / 3-5%. No cue family separates the categories from Normal, the same conclusion as the evaluation.
+* **The "physical-act cue" is noisy.** Contact (a hand within 0.25 m of the other person's torso while within 1.2 m) is found in about 30% of clips in every category, Normal included, so it also fires on hugs, handshakes and people
+  standing close. The video cut uses it, so some clips are cut too early, and a real act without a detected cue would not be cut at all. The benchmark's `act_start_s` measures this.
+* Example of a miss: Stalking_v3 (a rider lingering within arm's reach of a woman for about 1.5 s) gets no episodes, because lingering needs at least 3 s.
+
 ### 5.4 What we can and cannot claim
 * **Can:** a transparent, per-clip description of the interaction between people, with times, approximate meters, roles, target reaction and scene facts, up to just before the physical act; an evaluation showing the limits of behavior
   features on this labeled dataset; a reproducible pipeline that runs on a laptop and on Colab.
@@ -137,7 +146,7 @@ One-time setup (Drive shortcut, GitHub token secret) is in `colab/README.md`. La
 
 ## 8. What is left, in order
 
-1. Run notebooks 07 and 08 on Colab (everything is built and tested against a simulated Drive layout; the real run is the first time on the full set).
+1. (done) Notebooks 07 and 08 ran on Colab on the full set (2026-10-03). Download `VAW_results/report`, open `index.html`, review about 10 clips by eye.
 2. **Team annotation** (the key step): about 60 clips, 15 minutes per member per 15 clips; then `benchmark evaluate`. This turns the detectors from "plausible" into measured precision and recall, and shows
    whether the cut before the violence is accurate (`act_start_s`).
 3. Look at the report page together; choose 5-10 clips to present (check each video once for the cut; add `clip_id,cut_s` to `configs/clip_overrides.csv` if needed).

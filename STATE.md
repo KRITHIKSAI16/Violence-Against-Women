@@ -18,16 +18,16 @@ Last updated: 2026-10-03.  Code: everything below is committed and pushed to `or
 | M9 rule gate (5 behavior states) | **done, run on full set** | baseline; flagged Normal 27% vs 15% others; FOLLOW in 2 of 793 clips |
 | Deep context Stage A (`features.py` etc.) | **done, run on full set (39 min)** | camera, meters, pose facing/contact/reach, lagged following |
 | Evaluation (`learn.py`, notebook 06) | **done, run on full set** | behavior at chance on static-camera clips; style-only AUC 0.99 (source shortcut) |
-| Stage B scene layout + depth (`scene.py`, nb 07) | **built, tested, run on 12 local clips and a simulated Drive; NOT yet run on Colab** | needs GPU runtime |
-| Stage C scene graph + narrative (`graph.py`, `narrative.py`, `story.py`) | **built, tested, run on 12 local clips and a simulated Drive; NOT yet run on Colab** | |
-| Story video + report page (`story_video.py`, `story_report.py`, nb 08) | **built, tested; NOT yet run on Colab** | |
+| Stage B scene layout + depth (`scene.py`, nb 07) | **done, run on all 793 clips on Colab (GPU)** | place type: 163 outdoor / 60 indoor / 570 unknown; 481 layouts reliable; 80 doors; depth vs box-height ordering agrees 0.65 |
+| Stage C scene graph + narrative (`graph.py`, `narrative.py`, `story.py`) | **done, run on all 793 clips on Colab (23 min, 0 failed)** | does NOT separate categories either (see results below) |
+| Story video + report page (`story_video.py`, `story_report.py`, nb 08) | **done, run on Colab (60 showcase clips, 8 min)** | review the page by eye; annotation sheets written to `report/benchmark/` |
 | Annotation benchmark (`benchmark.py`) | **built, tested; waiting for the team's annotations** | the step that gives real precision / recall |
 | M3–M7 | covered by `windows.py` / `learn.py` + the benchmark | no separate M3 module |
 | Phase II (M10–M13) | not started, by design | |
 
 ## What to do next (in order)
 
-1. Colab: `git pull`, run **notebook 07** (GPU, ~20-40 min) then **notebook 08** (CPU). Open `VAW_results/report/index.html`.
+1. (done) Notebooks 07 and 08 ran on Colab. Download `VAW_results/report` and open `index.html`; review 10 clips by eye (does the video stop before the violence? are the sentences true?).
 2. Look at the page together. For clips you will present: watch the video once, check the cut; add `clip_id,cut_s` lines to `configs/clip_overrides.csv` if the violence shows (push, `git pull`, rerun notebook 08 step 3).
 3. **Team annotation** (notebook 08 steps 4-5): 4 sheets, about 60 clips; each person annotates without looking at the system's output; then `benchmark evaluate`; rerun step 6 so the page includes the benchmark table.
 4. Discuss with the supervisor how to frame the result (`docs/STATUS_REPORT.md` section 5 and 8).
@@ -40,6 +40,7 @@ Last updated: 2026-10-03.  Code: everything below is committed and pushed to `or
 * M8b score (mean of per-clip means): Normal 1.80, Harassment 1.44, Chain 1.41, Assassination 1.01, Stalking 0.94, Kidnapping 0.74.
 * Deep layer, share of clips with the behavior (Normal vs others pooled): approach from behind 19% vs 13%, contact 28% vs 29%, reach 15% vs 19%, follow 1% vs 1%, looking back 4% vs 2%, mutual facing 11% vs 2%.
 * Evaluation (AUC, buildup categories vs Normal, by clip): style only 0.988 (clips with a pair), behavior 0.693 (pairs) / 0.492 (static camera), per-category 0.46-0.54, rule gate 0.44. F1 0.77 in the first run equals "predict all positive".
+* Stages B and C on all 793 clips (Colab 2026-10-03): any concern cue Normal 41% vs Assassination 48%, Chain 41%, Harassment 49%, Kidnapping 47%, Stalking 41% (no separation); contact in 26-37% of clips in EVERY category (Normal 29%), so the "physical-act cue" that sets the video cut is noisy; reaching 14-22% in violence categories vs Normal 12%, Stalking 8%; pinned against a wall Harassment 14%, Kidnapping 11% vs Normal 7%; mutual facing (conversation) Normal 10%; following 1-4%; approach from behind Normal 5% vs 3% others. Stalking_v3 (the rider lingering near the woman for about 1.5 s) produces no episodes: lingering needs 3 s.
 * Verified by eye on sample clips: reach/contact (a man grabs a woman), metric scale (walking 1.0-1.5 m/s), tracking IDs, fixed false "running away" (cropped boxes), fixed false night/daylight (lamp-lit night street).
 
 ## Decisions and why (short; full log in docs/STATUS_REPORT.md section 3)
@@ -53,7 +54,7 @@ and Youden/balanced accuracy; generated data stays out of git; Claude Code may c
 - [x] ExtrAnom sample (12 clips) local in `data/sample/<Category>/` (git-ignored); full set on Drive (shortcut in My Drive)
 - [x] Repo, README, CLAUDE.md, docs, 178 tests, Colab notebooks 01–08, `configs/colab.yaml`
 - [x] Colab runs done: M1, M2, M8a, M8b, M9 gate, Stage A, evaluation (notebooks 01-06)
-- [ ] Colab runs to do: notebook 07 (scene + depth), notebook 08 (stories, report, benchmark sheets)
+- [x] Colab runs done: notebook 07 (scene + depth), notebook 08 steps 1-4 (stories, report page, benchmark sheets written)
 - [ ] Team annotation + `benchmark evaluate`
 - [ ] Teammates added as GitHub collaborators; each needs the `GITHUB_TOKEN` Colab secret (`colab/README.md`)
 
