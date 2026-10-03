@@ -230,7 +230,11 @@ def analyze_clip(t, cfg, clip_id="", category=""):
     size = (float(t["width"]), float(t["height"]))
     series = track_series(t, cfg)
     fast_series = track_series(t, {**cfg, "smooth_s": cfg["burst_smooth_s"]})
-    ids = sorted(series)
+    # drop tracks the detector itself barely believes in (typically objects such as chairs boxed as people)
+    min_conf = cfg.get("min_track_conf", 0.0)
+    mean_conf = {tid: float(t["conf"][t["track_id"] == tid].mean()) for tid in series}
+    dropped = sorted(tid for tid in series if mean_conf[tid] < min_conf)
+    ids = [tid for tid in sorted(series) if tid not in dropped]
     min_co = max(2, round(cfg["min_cotracked_s"] * fps))
 
     people = np.zeros(n, int)
@@ -314,7 +318,8 @@ def analyze_clip(t, cfg, clip_id="", category=""):
     states_seen = sorted({s["state"] for s in all_segs}, key=lambda s: RANK[s])
     gate = {
         "clip_id": clip_id, "category": category, "fps": fps, "n_frames": n,
-        "duration_s": round(n / fps, 3), "n_tracks": len(ids), "n_pairs": len(pair_ids),
+        "duration_s": round(n / fps, 3), "n_tracks": len(ids), "n_tracks_dropped_low_conf": len(dropped),
+        "n_pairs": len(pair_ids),
         "no_interaction": len(pair_ids) == 0,
         "key_pair": list(map(int, key_pair)) if key_pair else None,
         "flag": len(proposals) > 0,

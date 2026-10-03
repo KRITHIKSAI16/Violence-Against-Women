@@ -43,6 +43,7 @@ gate:
   gap_fill_s: 0.2            # fill track dropouts up to this long before smoothing
   gap_s: 0.5                 # bridge gaps up to this long inside a state (hysteresis)
   min_cotracked_s: 1.0       # ignore pairs seen together for less than this
+  min_track_conf: 0.35       # ignore tracks whose mean detection confidence is below this (chairs etc. boxed as people)
   move_speed: 0.25           # bh/s: counts as "moving"
   still_speed: 0.15          # bh/s: counts as "standing still"
   approach_closing: 0.3      # bh/s distance must shrink at least this fast

@@ -37,6 +37,7 @@ SWEEP = {
     "hover_max_d": [1.0, 1.5, 2.0],
     "corner_min_s": [1.0, 1.5, 2.5, 4.0],
     "corner_blocked_speed": [0.2, 0.3, 0.5],
+    "min_track_conf": [0.0, 0.3, 0.35, 0.4, 0.5],
 }
 
 

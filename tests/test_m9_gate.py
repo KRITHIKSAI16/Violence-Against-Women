@@ -186,3 +186,18 @@ def test_parse_overrides():
 def test_gate_records_thresholds_used():
     g, _ = run({1: lambda t: (200 + 80 * t, 500), 2: lambda t: (400 + 80 * t, 500)}, 8)
     assert g["params"]["follow_min_s"] == CFG["follow_min_s"] and "burst_abs" in g["params"]
+
+
+def test_low_confidence_track_is_ignored_like_a_chair_boxed_as_a_person():
+    # B hovers next to A for 6 s; with high detection confidence it is a HOVER, with low confidence the track is dropped
+    def build(conf_b):
+        rows = []
+        for f in range(int(6 * FPS)):
+            t = f / FPS
+            for tid, (x, y), c in ((1, (500, 500), 0.9), (2, (580 + 20 * np.sin(2 * t), 500 + 30 * np.cos(3 * t)), conf_b)):
+                rows.append((f, tid, np.array([x - 20, y - 50, x + 20, y + 50], np.float32), c, KP))
+        return pack_tracks(rows, FPS, W, H, int(6 * FPS))
+    real, _ = analyze_clip(build(0.8), CFG, "r", "T")
+    chair, _ = analyze_clip(build(0.2), CFG, "c", "T")
+    assert real["flag"] and HOVER in real["states_seen"]
+    assert chair["n_tracks_dropped_low_conf"] == 1 and chair["no_interaction"] and not chair["flag"]

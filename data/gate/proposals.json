@@ -51,23 +51,5 @@
    "HOVER"
   ],
   "ends_in_escalation": false
- },
- {
-  "clip_id": "Normal_v6",
-  "category": "Normal",
-  "fps": 30.0,
-  "start_f": 187,
-  "end_f": 399,
-  "start_s": 6.233,
-  "end_s": 13.333,
-  "pair": [
-   2,
-   6
-  ],
-  "reasons": [
-   "APPROACH",
-   "HOVER"
-  ],
-  "ends_in_escalation": false
  }
 ]

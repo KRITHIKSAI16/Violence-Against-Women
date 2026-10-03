@@ -5,6 +5,7 @@
  "n_frames": 317,
  "duration_s": 10.567,
  "n_tracks": 5,
+ "n_tracks_dropped_low_conf": 0,
  "n_pairs": 3,
  "no_interaction": false,
  "key_pair": [
@@ -88,6 +89,7 @@
   "gap_fill_s": 0.2,
   "gap_s": 0.5,
   "min_cotracked_s": 1.0,
+  "min_track_conf": 0.35,
   "move_speed": 0.25,
   "still_speed": 0.15,
   "approach_closing": 0.3,
