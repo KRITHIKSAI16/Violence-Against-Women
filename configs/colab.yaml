@@ -65,3 +65,18 @@ gate:
   burst_min_s: 0.2
   burst_smooth_s: 0.15       # bursts use a short smoothing/velocity window (they are brief)
   burst_vel_s: 0.2
+
+# Phase 1 deliverable: buildup videos + category report
+report:
+  report_dir: /content/drive/MyDrive/VAW_results/report
+  act_categories: [Assassination, Chain_Snatching, Kidnapping]   # clips that contain the violent act
+  cut_margin_s: 1.0          # video ends this long BEFORE the detected escalation (bigger = safer, less buildup shown)
+  act_tail_trim_s: 3.0       # act categories with no detected escalation: drop this much off the end (uniform)
+  min_video_s: 1.5           # shorter pre-violence footage than this is not rendered
+  withheld_card_s: 1.5       # length of the "footage withheld" card at the cut
+  overrides_csv: configs/clip_overrides.csv   # optional manual cut times: clip_id,cut_s
+  showcase_top: 5            # per category: clips with the most buildup evidence ...
+  showcase_random: 5         # ... plus this many random clips (so the showcase is not cherry-picked)
+  seed: 7
+  review_flagged: 20         # review sheet: flagged clips to check by eye (precision)
+  review_unflagged: 10       # review sheet: unflagged non-Normal clips to check (what was missed)

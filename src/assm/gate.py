@@ -280,10 +280,18 @@ def analyze_clip(t, cfg, clip_id="", category=""):
             for s in build + ([later_esc] if later_esc else []):
                 if s["state"] not in first_start or s["start_f"] < first_start[s["state"]]:
                     first_start[s["state"]] = s["start_f"]
-            if later_esc:
-                esc = {"frame": later_esc["start_f"], "time_s": round(later_esc["start_f"] / fps, 3),
-                       "pair": [int(p[0]), int(p[1])]}
     proposals.sort(key=lambda p: p["start_f"])
+
+    # Earliest escalation by anyone connected to the buildup pair (or by anyone, if no buildup pair): the video cut
+    # uses this, because the act can involve a third person (a second attacker) and we must not show it.
+    esc_segs = [s for s in all_segs if s["state"] == ESCALATION]
+    if key_pair:
+        esc_segs = [s for s in esc_segs if {s["id_i"], s["id_j"]} & set(key_pair)]
+    if esc_segs:
+        e = min(esc_segs, key=lambda s: s["start_f"])
+        esc = {"frame": e["start_f"], "time_s": round(e["start_f"] / fps, 3), "pair": [e["id_i"], e["id_j"]]}
+        if first_start and e["start_f"] >= min(first_start.values()):
+            first_start.setdefault(ESCALATION, e["start_f"])
 
     rows = []
     if key_pair is not None:

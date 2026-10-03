@@ -24,6 +24,20 @@
  "escalation": null,
  "proposals": [
   {
+   "start_f": 182,
+   "end_f": 240,
+   "start_s": 6.067,
+   "end_s": 8.033,
+   "pair": [
+    1,
+    6
+   ],
+   "reasons": [
+    "HOVER"
+   ],
+   "ends_in_escalation": false
+  },
+  {
    "start_f": 186,
    "end_f": 379,
    "start_s": 6.2,
@@ -52,9 +66,51 @@
     "HOVER"
    ],
    "ends_in_escalation": false
+  },
+  {
+   "start_f": 227,
+   "end_f": 342,
+   "start_s": 7.567,
+   "end_s": 11.433,
+   "pair": [
+    2,
+    4
+   ],
+   "reasons": [
+    "APPROACH",
+    "HOVER"
+   ],
+   "ends_in_escalation": false
+  },
+  {
+   "start_f": 239,
+   "end_f": 298,
+   "start_s": 7.967,
+   "end_s": 9.967,
+   "pair": [
+    1,
+    4
+   ],
+   "reasons": [
+    "HOVER"
+   ],
+   "ends_in_escalation": false
   }
  ],
  "segments": [
+  {
+   "state": "HOVER",
+   "id_i": 1,
+   "id_j": 6,
+   "start_f": 182,
+   "end_f": 240,
+   "start_s": 6.067,
+   "end_s": 8.033,
+   "dur_s": 1.967,
+   "actor": 6,
+   "target": 1,
+   "mean_d": 1.72
+  },
   {
    "state": "APPROACH",
    "id_i": 1,
@@ -80,6 +136,58 @@
    "drop_bh": 1.08
   },
   {
+   "state": "HOVER",
+   "id_i": 1,
+   "id_j": 2,
+   "start_f": 208,
+   "end_f": 379,
+   "start_s": 6.933,
+   "end_s": 12.667,
+   "dur_s": 5.733,
+   "actor": 2,
+   "target": 1,
+   "mean_d": 1.16
+  },
+  {
+   "state": "HOVER",
+   "id_i": 2,
+   "id_j": 6,
+   "start_f": 219,
+   "end_f": 399,
+   "start_s": 7.3,
+   "end_s": 13.333,
+   "dur_s": 6.033,
+   "actor": 2,
+   "target": 6,
+   "mean_d": 1.15
+  },
+  {
+   "state": "HOVER",
+   "id_i": 2,
+   "id_j": 4,
+   "start_f": 227,
+   "end_f": 342,
+   "start_s": 7.567,
+   "end_s": 11.433,
+   "dur_s": 3.867,
+   "actor": 2,
+   "target": 4,
+   "mean_d": 1.42
+  },
+  {
+   "state": "HOVER",
+   "id_i": 1,
+   "id_j": 4,
+   "start_f": 239,
+   "end_f": 298,
+   "start_s": 7.967,
+   "end_s": 9.967,
+   "dur_s": 2.0,
+   "actor": 1,
+   "target": 4,
+   "mean_d": 0.81
+  },
+  {
    "state": "APPROACH",
    "id_i": 2,
    "id_j": 4,
@@ -90,32 +198,6 @@
    "dur_s": 2.133,
    "actor": 2,
    "drop_bh": 1.33
-  },
-  {
-   "state": "HOVER",
-   "id_i": 2,
-   "id_j": 6,
-   "start_f": 243,
-   "end_f": 399,
-   "start_s": 8.1,
-   "end_s": 13.333,
-   "dur_s": 5.233,
-   "actor": 2,
-   "target": 6,
-   "mean_d": 1.1
-  },
-  {
-   "state": "HOVER",
-   "id_i": 1,
-   "id_j": 2,
-   "start_f": 256,
-   "end_f": 379,
-   "start_s": 8.533,
-   "end_s": 12.667,
-   "dur_s": 4.133,
-   "actor": 2,
-   "target": 1,
-   "mean_d": 0.96
   }
  ],
  "max_people": 4,

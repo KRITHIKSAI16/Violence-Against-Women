@@ -16,11 +16,19 @@
   "CORNER",
   "ESCALATION"
  ],
- "ordered_progression": false,
+ "ordered_progression": true,
  "phase_sequence": [
-  "CORNER"
+  "CORNER",
+  "ESCALATION"
  ],
- "escalation": null,
+ "escalation": {
+  "frame": 116,
+  "time_s": 3.867,
+  "pair": [
+   2,
+   4
+  ]
+ },
  "proposals": [
   {
    "start_f": 67,

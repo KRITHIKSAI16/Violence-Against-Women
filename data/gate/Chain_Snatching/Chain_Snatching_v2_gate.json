@@ -7,14 +7,50 @@
  "n_tracks": 3,
  "n_pairs": 2,
  "no_interaction": false,
- "key_pair": null,
- "flag": false,
- "states_seen": [],
+ "key_pair": [
+  1,
+  3
+ ],
+ "flag": true,
+ "states_seen": [
+  "HOVER"
+ ],
  "ordered_progression": false,
- "phase_sequence": [],
+ "phase_sequence": [
+  "HOVER"
+ ],
  "escalation": null,
- "proposals": [],
- "segments": [],
+ "proposals": [
+  {
+   "start_f": 237,
+   "end_f": 284,
+   "start_s": 7.9,
+   "end_s": 9.5,
+   "pair": [
+    1,
+    3
+   ],
+   "reasons": [
+    "HOVER"
+   ],
+   "ends_in_escalation": false
+  }
+ ],
+ "segments": [
+  {
+   "state": "HOVER",
+   "id_i": 1,
+   "id_j": 3,
+   "start_f": 237,
+   "end_f": 284,
+   "start_s": 7.9,
+   "end_s": 9.5,
+   "dur_s": 1.6,
+   "actor": 1,
+   "target": 3,
+   "mean_d": 0.34
+  }
+ ],
  "max_people": 2,
  "isolated_frac": 0.557
 }
