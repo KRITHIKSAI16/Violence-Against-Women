@@ -3,7 +3,9 @@ matplotlib
 numpy
 opencv-python
 pandas
+pillow
 pytest
 pyyaml
 scikit-learn
+transformers
 ultralytics

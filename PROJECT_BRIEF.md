@@ -74,8 +74,16 @@ buildup context" the supervisor is asking for.** It is already fully
 specified with a concrete formula (see §4). Run across a clip's full
 duration, the resulting score is literally the buildup curve: rising and
 staying elevated for Stalking-type behavior, flat/noisy for Normal clips.
-No natural-language explanation layer is needed or wanted — the engineered,
-interpretable score itself is the context/explanation output for Phase 1.
+No natural-language MODEL is needed or wanted. The context is engineered and interpretable; the sentences shown in the story are produced by
+deterministic templates from the detected episodes (nothing is generated that the detectors did not find).
+
+**Update 2026-10-03 - what Phase 1 became (read `docs/STATUS_REPORT.md`).** The simple M8b score and the first M9 rule gate did not separate the
+categories from Normal (Normal was flagged MORE often: 27% vs 15%). Phase 1 therefore delivers: (1) the data pipeline M1, M2, M8a; (2) a **deep context layer**
+(`src/context/`, an elaboration of M8 + M9): approximate meters, camera motion, body-pose facing / contact / reach, lagged-path following, scene layout, depth for the key pair, an interaction
+scene graph and a deterministic narrative per clip; (3) a **story video** per clip that stops before the first physical-act cue; (4) a **controlled evaluation** (the report's M4-M7 in a form that
+detects dataset shortcuts) and an **annotated benchmark** (about 60 clips, the team) that measures detector precision / recall. The honest result: behavior features cannot reproduce the category
+labels (AUC 0.49 on static-camera clips) and the Normal clips are a different source (original resolution / frame rate identify them with AUC 0.99). So Phase 1 delivers a detailed, checkable
+description of each clip and an evaluation of its limits, NOT a buildup classifier. M3 (segment pairing) was folded into the cut-point rule; M4-M7 exist as `windows.py` / `learn.py` plus the benchmark.
 
 **Explicitly out of scope for Phase 1** (deferred to Phase II, M10–M13):
 - Lead-time / future-horizon risk prediction (t+2s, t+5s, t+10s)
@@ -89,10 +97,10 @@ interpretable score itself is the context/explanation output for Phase 1.
   later if time permits, but is not a hard Phase 1 dependency)
 - LLM-based clip or window annotation (Gemini or otherwise) — no behavior
   taxonomy, no structured annotation schema, no annotation runner
-- Depth-aware (Depth Anything) proximity refinement — this is introduced
-  in M10 (Phase II) when building the full interaction graph; M8's
-  Algorithm 1 for Phase I uses plain 2D pixel distance, which is
-  sufficient for the screening-stage buildup signal
+- A full depth-aware interaction graph with learned edge weights (M10). **Update 2026-10-03:** the team decided to use Depth Anything V2 Small and
+  scene segmentation EARLY, in Phase 1, as a context check only (which person is nearer, whether two people are on the same depth plane, pinned
+  against a wall, doors as real exits) on the single most active pair of each clip. This is the report's Algorithm 2 used for description, not for
+  prediction. Everything that predicts the future stays in Phase II.
 
 ## 3. Dataset
 
@@ -188,8 +196,10 @@ M8b score cannot say *what* is happening (on the full set Normal clips scored hi
 Stalking 0.94), so M9 turns the same cached tracks into interpretable behavior states per pair —
 APPROACH, FOLLOW, HOVER, CORNER, ESCALATION — with who-does-what and durations. These implement the
 report's three M9 heuristics (persistence, path blocking, sudden motion). A clip is flagged when FOLLOW, HOVER or CORNER
-occurs, or an APPROACH ends in ESCALATION. Output = temporal proposals. The "buildup video" deliverable
-shows this context up to just before the detected escalation, never the violence.
+occurs, or an APPROACH ends in ESCALATION. Output = temporal proposals. **This rule gate was then run on all 793 clips and did not work**
+(Normal flagged 27% vs 15% for the other categories; FOLLOW in 2 clips). It is kept as the BASELINE. The final M9 deliverable is the deep context layer
+(`src/context/`, scene graph episodes + narrative, see the update in section 2 and `docs/ARCHITECTURE.md`), whose story video shows the context up to just
+before the first physical-act cue, never the violence.
 
 **Important structural note from the report's own figure (Fig 3.2):** M8–M9
 form an independent track that depends only on off-the-shelf detection/pose
@@ -275,9 +285,11 @@ taking raw ExtrAnom clips all the way through to tracked, scored
 interaction signals with a working screening gate. This directly produces
 the pre-violence buildup context the supervisor asked for, end to end.
 
-M3–M7 (segment pairing, feature caching, EDA, baseline classifier,
-benchmark) form the natural next set once M1/M2/M8/M9 are solid, time
-permitting within Phase 1.
+M3–M7 (segment pairing, feature caching, EDA, baseline classifier, benchmark): partly covered since 2026-10-03 — see the update in section 2: the window feature table and
+the cross-validated baseline with shortcut probes (`src/context/windows.py`, `learn.py`) and the annotated benchmark (`src/report/benchmark.py`). A separate M3 segment-pairing module was not needed.
+
+**Final Phase 1 deliverable (2026-10-03):** the story report (`VAW_results/report/index.html`) with per-clip story videos and storyboards, the category table (always compared with Normal), the
+evaluation findings, and the annotation benchmark. Run order: Colab notebooks 01 -> 08 (`colab/README.md`).
 
 ## 7. Working style / constraints
 
@@ -351,7 +363,8 @@ permitting within Phase 1.
 
 - Abstract and Introduction drafted, matching the full two-phase framing
   (Review Report I)
-- Results sections are placeholders pending Phase 1 (M1–M9) experiments
+- Results: Phase 1 experiments exist (see `docs/STATUS_REPORT.md` section 5); the key honest findings to report are the failure of the simple score, the source shortcut in the
+  Normal class (style-only AUC 0.99), behavior at chance on static-camera clips, and (after annotation) detector precision / recall from the benchmark
 - The section-roadmap paragraph at the end of the Introduction is
   intentionally left out until the paper's final structure is settled
 - Paper content does not need rescoping — the submitted report already

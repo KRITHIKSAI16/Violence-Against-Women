@@ -1,5 +1,8 @@
 # Checking M9 and the buildup deliverable
 
+> **Note (2026-10-03):** this guide covers the M9 RULE GATE, which is now the *baseline*. It flagged Normal clips more often than the buildup categories (27% vs 15%). The current deliverable is the deep context layer; its verification guide is `docs/VERIFY_CONTEXT.md`.
+
+
 M8 checks (tracks, Algorithm 1 scores) are in `docs/VERIFY_M8.md`. This file covers the behavior states, the videos and the report.
 Design and file formats: `docs/ARCHITECTURE.md`.
 

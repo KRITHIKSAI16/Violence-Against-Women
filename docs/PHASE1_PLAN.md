@@ -1,47 +1,38 @@
-# Phase 1 plan: pre-violence buildup per category (M1 -> M2 -> M8 -> M9)
+# Phase 1 plan and what was actually built
 
-Basis: Review Report I (Phase I = M1-M9) and PROJECT_BRIEF.md. Goal: a Phase 1 deliverable that shows the
-**pre-violence buildup (approaching, following, hovering, cornering) for every ExtrAnom category**, from one common pipeline,
-without showing the violence, and reusable by Phase II. Status per module: `STATE.md`. How it is built: `docs/ARCHITECTURE.md`.
+Basis: Review Report I (Phase I = M1–M9) and PROJECT_BRIEF.md. This file records the plan, how it changed after the first full-dataset results, and the final delivered scope.
+Status per part: `STATE.md`. Results and decisions: `docs/STATUS_REPORT.md`. How it is built: `docs/ARCHITECTURE.md`.
 
-## Pipeline
-```
-raw clips -> M1 manifest -> M2 clean clips -> M8a tracks+pose (GPU) -> M8b Algorithm 1 scores
-                                                      \-> M9 behavior states + proposals -> calibrate -> buildup videos + category report
-```
-| Step | Module | What |
-|---|---|---|
-| M1 | `src/data/manifest.py` | list clips, labels (Normal = normal, others = pre_violence), metadata (OpenCV, ffprobe fallback for AV1) |
-| M2 | `src/data/preprocess.py` | ffmpeg: 30 fps, longest side 640, aspect kept; skip corrupt |
-| M8a | `src/assm/track_poses.py` | YOLOv8n-pose + ByteTrack (low conf, long buffer) + tracklet stitching; cache `.npz` |
-| M8b | `src/assm/interaction.py` | Algorithm 1: d (body heights), closing speed, b_ij (frame-edge exit), score; per-pair CSV and curve |
-| M9 | `src/assm/gate.py` | behavior states APPROACH / FOLLOW / HOVER / CORNER / ESCALATION per pair, flags, temporal proposals |
-| M9 tools | `calibrate.py`, `hand_check_gate.py` | threshold sweep vs Normal; independent recompute of one frame |
-| Deliverable | `src/report/buildup_video.py`, `buildup_report.py` | buildup video (stops before the act), storyboard, category report, review sheet |
+## Original plan (2026-10-02)
+Goal: show the pre-violence buildup (approaching, following, hovering, cornering) for every ExtrAnom category from one common pipeline, without showing the violence, reusable by Phase II.
+Pipeline: M1 manifest -> M2 clean clips -> M8a tracks + pose -> M8b Algorithm 1 score -> M9 gate -> report. Same code and config for all six categories; Normal is the baseline.
 
-## Why M9 is states, not a score
-The Algorithm 1 score on the full set (Colab run): mean per category Normal 1.80, Harassment 1.44, Chain 1.41, Stalking 0.94,
-Kidnapping 0.74. One number cannot say what is happening and Normal scored highest. The context is the ordered sequence of
-behaviors between two people, so M9 reports who approaches/follows/hovers near/blocks whom, and for how long. The three states map
-to the report's M9 heuristics (tracking persistence, path blocking, sudden abnormal motion).
+## What the first full-dataset run showed (2026-10-03)
+* M8b score: Normal highest (1.80 vs Stalking 0.94). M9 rule gate: Normal flagged 27% vs 15% for the others; FOLLOW in 2 of 793 clips. 36-45% of clips have no usable pair.
+* Decision: do not tune the same simple rules; use what was cached but unused (17 body keypoints), real-world geometry and scene context, and evaluate honestly.
+
+## Revised plan, now delivered (stages; each built and tested before the next)
+| Stage | What | Code | Notebook | Status |
+|---|---|---|---|---|
+| A | camera motion; meters (ground plane, Hall zones); body / head facing; contact and reach; lagged-path following; per-pair events | `src/context/{camera,ground,pose_features,follow,features}.py` | 05 | done, run on 793 clips |
+| D | window table + cross-validated baseline by clip + style-only shortcut probe + static-camera and style-matched views | `windows.py`, `learn.py` | 06 | done, run |
+| B | scene layout (SegFormer-B0: walkable, obstacle, door, vehicle, sky, vegetation), place type, doors, robust light; Depth Anything V2 Small on the key pair | `scene.py` | 07 | built, tested; to run |
+| C | interaction scene graph (episodes), narrative sentences, cue curve, first physical-act cue | `graph.py`, `narrative.py`, `story.py` | 08 | built, tested; to run |
+| Deliverable | story video (mini-map, cue strip, ends before the act), storyboard, report page, clip tables | `report/story_video.py`, `story_report.py` | 08 | built, tested; to run |
+| Benchmark | annotation sheets, kappa, detector precision / recall vs humans, cut-point accuracy | `report/benchmark.py` | 08 | built, tested; waiting for annotations |
+
+Baselines kept: M8b score (`src/assm/interaction.py`), M9 rule gate (`gate.py`, `calibrate.py`), older report (`buildup_report.py`, `buildup_video.py`).
 
 ## Same method for every category
-Same code and config for all six. Stalking/Harassment: whole clip is buildup. Assassination/Chain_Snatching/Kidnapping contain the act:
-the video stops at the detected escalation minus a margin, else a uniform tail trim (never per-clip by hand, except explicit overrides for
-clips you present). Normal is the baseline in every table.
+Same code and config for all six. Stalking and Harassment: whole clip is available. Assassination / Chain_Snatching / Kidnapping contain the act: the video stops at the first physical-act cue minus 1 s, else a uniform 3 s tail trim,
+never per-clip by hand except explicit overrides for clips you present. Normal is the comparison in every table.
 
-## Deliverable contents
-Per category: share of clips flagged, with each behavior, ordered progression, median buildup length, time to escalation, no-pair share;
-Normal as false-alarm baseline; showcase (top-evidence + random clips) with video and storyboard; a by-eye review sheet.
+## What is deliberately not done
+Future-risk prediction, lead time, memory model (Phase II); InternVideo2; gender / age / identity inference; a language model in the pipeline; an LLM annotation layer.
 
-## Honest limits
-2D geometry, small/distant people missed (13-28% of clips per category have no trackable pair), false boxes, domestic scenes, hand-held
-cameras, no annotation of the act's start (cut is a heuristic), in-sample threshold calibration. Normal clips differ in style from the rest.
+## Phase II fit
+Tracks + meters + poses = graph nodes and edge features (M10); episodes = predicate sequences for the plausibility grammar (M12); depth is already computed for the key pair (Algorithm 2); scene facts = context metadata;
+benchmark annotations = first ground truth for horizon labels; `learn.py` results = the baseline Phase II must beat.
 
-## Build/run order
-1. Colab notebooks `01` (M1/M2) -> `02` (M8a, GPU) -> `03` (M8b, optional) -> `04` (M9, calibration, report). 2. Read the calibration table, set
-thresholds, rerun gate + report. 3. Fill the review sheet, report precision by eye. 4. Pick clips to present; set cut overrides; render again.
-
-## After Phase 1
-M3-M7 (segment pairing, features, EDA, baseline classifier, benchmark) on the same manifest; then Phase II (M10-M13): depth-corrected distance,
-interaction graphs from the tracks, plausibility-constrained training using the state sequences, lead-time evaluation.
+## Run order
+Colab notebooks 01 -> 08 (see `colab/README.md`). Laptop: `python -m pytest -q`, then the commands in `README.md`.

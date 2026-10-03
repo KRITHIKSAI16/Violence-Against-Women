@@ -121,8 +121,11 @@ def findings_html(learn, bench):
         out.append("<li>Evaluation results not found yet (run notebook 06).</li>")
     if bench:
         good = [(b, v) for b, v in bench["behaviors"].items() if v["annotated_present"] >= 3 and v["precision"] == v["precision"]]
-        rows = "".join(f"<tr><td>{esc(b)}</td><td>{v['annotated_present']}</td><td>{v['detected']}</td><td>{v['precision']:.2f}</td><td>{v['recall']:.2f}</td><td>{'-' if v['kappa'] != v['kappa'] else f'{v['kappa']:.2f}'}</td></tr>"
-                       for b, v in good)
+        def row(b, v):
+            kappa = "-" if v["kappa"] != v["kappa"] else format(v["kappa"], ".2f")
+            return (f"<tr><td>{esc(b)}</td><td>{v['annotated_present']}</td><td>{v['detected']}</td><td>{v['precision']:.2f}</td>"
+                    f"<td>{v['recall']:.2f}</td><td>{kappa}</td></tr>")
+        rows = "".join(row(b, v) for b, v in good)
         out.append(f"<li><b>Annotated benchmark ({bench['n_clips']} clips, {len(bench['annotators'])} annotators):</b> detector precision / recall against human labels.<table><tr><th>behavior</th><th>annotated</th><th>detected</th>"
                    f"<th>precision</th><th>recall</th><th>kappa</th></tr>{rows}</table></li>")
     else:
