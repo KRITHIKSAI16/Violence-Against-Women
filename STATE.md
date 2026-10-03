@@ -3,7 +3,7 @@
 Live status. `PROJECT_BRIEF.md` = stable scope/spec. `docs/STATUS_REPORT.md` = readable summary with all results and the decisions log (share this with the team).
 `docs/ARCHITECTURE.md` = how it is built and every file format. `docs/VERIFY_CONTEXT.md` = how to check every output.
 
-Last updated: 2026-10-03.  Code: everything below is committed and pushed to `origin/main`; `python -m pytest -q` passes (176 tests).
+Last updated: 2026-10-03.  Code: everything below is committed and pushed to `origin/main`; `python -m pytest -q` passes (178 tests).
 
 ---
 
@@ -51,7 +51,7 @@ and Youden/balanced accuracy; generated data stays out of git; Claude Code may c
 ## Setup checklist
 
 - [x] ExtrAnom sample (12 clips) local in `data/sample/<Category>/` (git-ignored); full set on Drive (shortcut in My Drive)
-- [x] Repo, README, CLAUDE.md, docs, 176 tests, Colab notebooks 01–08, `configs/colab.yaml`
+- [x] Repo, README, CLAUDE.md, docs, 178 tests, Colab notebooks 01–08, `configs/colab.yaml`
 - [x] Colab runs done: M1, M2, M8a, M8b, M9 gate, Stage A, evaluation (notebooks 01-06)
 - [ ] Colab runs to do: notebook 07 (scene + depth), notebook 08 (stories, report, benchmark sheets)
 - [ ] Team annotation + `benchmark evaluate`

@@ -5,7 +5,7 @@ Rule of thumb for everything below: **numbers are only trusted after you have lo
 
 ## 0. Fast health check
 ```
-python -m pytest -q                 # 176 tests, synthetic worlds with known answers; needs ffmpeg for the video tests
+python -m pytest -q                 # 178 tests, synthetic worlds with known answers; needs ffmpeg for the video tests
 ```
 Laptop end-to-end on the 12 sample clips (after M1, M2, M8a):
 ```

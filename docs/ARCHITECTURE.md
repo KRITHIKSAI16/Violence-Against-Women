@@ -146,7 +146,7 @@ not per-second annotations; Normal clips are a different source; detector precis
 `story` (episode thresholds and `cue_weights`), `learn` (windows, folds, top-k, max pairs per clip), `report` (cut rules, showcase sizes, `report_dir`). Colab uses absolute Drive paths; relative paths resolve against the repo root.
 
 ## 10. Tests
-`python -m pytest -q` (176 tests): synthetic people with known motion for every behavior (approach from behind vs frontal, following with lag vs side by side, hovering, corner, door blocking, pinned against, contact, reach,
+`python -m pytest -q` (178 tests): synthetic people with known motion for every behavior (approach from behind vs frontal, following with lag vs side by side, hovering, corner, door blocking, pinned against, contact, reach,
 fleeing, cropped boxes, camera pan), camera estimation on textured synthetic video, ground-plane meters, scene logic (layout facts, doors, light, depth helpers), graph episodes and narrative text, story video frame counts
 (footage up to the cut + card, nothing after), report numbers and HTML, benchmark metrics (kappa, ties, cut accuracy), the evaluation including **the shortcut probe** (identical behavior, different filming => style AUC ~1, behavior AUC ~0.5).
 No dataset or GPU needed; ffmpeg is needed for video tests (skipped if missing); one SegFormer smoke test runs only if the weights are cached.

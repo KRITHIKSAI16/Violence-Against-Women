@@ -30,7 +30,7 @@ Python 3.10+ and ffmpeg on PATH.
 ```
 git clone https://github.com/KRITHIKSAI16/Violence-Against-Women.git && cd Violence-Against-Women
 pip install -r requirements.txt
-python -m pytest -q                                              # 176 tests, no dataset needed
+python -m pytest -q                                              # 178 tests, no dataset needed
 # put 2 clips per category under data/sample/<Category>/ , then:
 python -m src.data.manifest && python -m src.data.preprocess
 python -m src.assm.track_poses                                   # downloads yolov8n-pose.pt (~6 MB); CPU is fine for 12 clips

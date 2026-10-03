@@ -131,7 +131,7 @@ Example of a narrative line (from the code, deterministic text templates, no lan
 | 07 | `07_scene_layout_and_depth` | **GPU** | ~20-40 min | layout, doors, light, depth for the key pair |
 | 08 | `08_story_report_and_benchmark` | CPU | ~15 min + annotation | stories, report page, annotation sheets, benchmark evaluation |
 
-One-time setup (Drive shortcut, GitHub token secret) is in `colab/README.md`. Laptop: `pip install -r requirements.txt`, `python -m pytest -q` (176 tests), commands in `README.md`.
+One-time setup (Drive shortcut, GitHub token secret) is in `colab/README.md`. Laptop: `pip install -r requirements.txt`, `python -m pytest -q` (178 tests), commands in `README.md`.
 
 ---
 

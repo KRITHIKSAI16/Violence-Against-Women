@@ -10,7 +10,7 @@ Read these fully before doing anything, in this order:
 ## Commands (run from the repo root)
 ```
 pip install -r requirements.txt          # needs Python 3.10+ and ffmpeg/ffprobe on PATH
-python -m pytest -q                      # 176 tests, no dataset or GPU needed; keep it green
+python -m pytest -q                      # 178 tests, no dataset or GPU needed; keep it green
 python -m src.data.manifest | src.data.preprocess | src.assm.track_poses        # M1, M2, M8a
 python -m src.context.features | scene | story | learn                          # deep context stages A, B, C, D
 python -m src.report.story_report | story_video <clip> | benchmark make/evaluate  # deliverable and benchmark
