@@ -201,3 +201,26 @@ def test_low_confidence_track_is_ignored_like_a_chair_boxed_as_a_person():
     chair, _ = analyze_clip(build(0.2), CFG, "c", "T")
     assert real["flag"] and HOVER in real["states_seen"]
     assert chair["n_tracks_dropped_low_conf"] == 1 and chair["no_interaction"] and not chair["flag"]
+
+
+def test_prepare_then_finalize_equals_analyze_and_one_prepare_serves_many_thresholds():
+    from src.assm.gate import finalize_clip, prepare_clip
+    t = tracks({1: lambda t: (200 + 80 * t, 500), 2: lambda t: (400 + 80 * t, 500)}, 8)
+    prep = prepare_clip(t, CFG)
+    assert finalize_clip(prep, CFG, "x", "T")[0] == analyze_clip(t, CFG, "x", "T")[0]
+    strict = finalize_clip(prep, {**CFG, "follow_min_s": 20.0}, "x", "T")[0]     # same prep, stricter rule
+    assert not strict["flag"] and finalize_clip(prep, CFG, "x", "T")[0]["flag"]
+
+
+def test_sweep_matches_naive_evaluation(tmp_path):
+    follow = tracks({1: lambda t: (200 + 80 * t, 500), 2: lambda t: (400 + 80 * t, 500)}, 8)
+    apart = tracks({1: lambda t: (500 - 80 * t, 500), 2: lambda t: (500 + 80 * t, 500)}, 8)
+    paths = []
+    for k, (cat, t) in enumerate([("Stalking", follow), ("Normal", apart), ("Normal", follow)]):
+        p = tmp_path / f"{k}.npz"
+        np.savez_compressed(p, **t)
+        paths.append((cat, p))
+    rows, _ = sweep(paths, CFG, workers=1, target=0.15, progress=False)
+    row = next(r for r in rows if r["param"] == "follow_min_s" and r["value"] == 8.0)
+    naive = rates(evaluate([("Stalking", follow), ("Normal", apart), ("Normal", follow)], {**CFG, "follow_min_s": 8.0}))
+    assert row["normal_flag"] == pytest.approx(naive["_normal_flag"]) and row["other_flag"] == pytest.approx(naive["_other_flag"])

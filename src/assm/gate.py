@@ -223,25 +223,28 @@ def _ordered(first_start):
     return len(set(ranks)) >= 2 and all(a <= b for a, b in zip(ranks, ranks[1:]))
 
 
-def analyze_clip(t, cfg, clip_id="", category=""):
-    """Run the whole M9 analysis for one clip's tracks; returns (gate dict, key-pair states rows)."""
+def prepare_clip(t, cfg, keep_conf=None):
+    """The expensive, threshold-independent part: smoothed tracks and per-pair features.
+
+    Everything that depends only on smoothing/velocity windows lives here, so the calibration sweep can compute it ONCE
+    per clip and then try many state thresholds with `finalize_clip`. Tracks whose mean detection confidence is below
+    `keep_conf` (default: cfg min_track_conf) are not processed at all.
+    """
     fps = float(t["fps"])
     n = int(t["n_frames"])
     size = (float(t["width"]), float(t["height"]))
     series = track_series(t, cfg)
     fast_series = track_series(t, {**cfg, "smooth_s": cfg["burst_smooth_s"]})
-    # drop tracks the detector itself barely believes in (typically objects such as chairs boxed as people)
-    min_conf = cfg.get("min_track_conf", 0.0)
+    keep = cfg.get("min_track_conf", 0.0) if keep_conf is None else keep_conf
     mean_conf = {tid: float(t["conf"][t["track_id"] == tid].mean()) for tid in series}
-    dropped = sorted(tid for tid in series if mean_conf[tid] < min_conf)
-    ids = [tid for tid in sorted(series) if tid not in dropped]
+    ids = [tid for tid in sorted(series) if mean_conf[tid] >= keep]
     min_co = max(2, round(cfg["min_cotracked_s"] * fps))
 
     people = np.zeros(n, int)
     for f in t["frame_idx"].tolist():
         people[f] += 1
 
-    all_segs, feats, pair_ids = [], {}, []
+    pairs = []
     for a in range(len(ids)):
         for b in range(a + 1, len(ids)):
             i, j = ids[a], ids[b]
@@ -252,10 +255,30 @@ def analyze_clip(t, cfg, clip_id="", category=""):
             f = pair_features(Si, hi, Sj, hj, fps, size, cfg)
             fast = pair_features(*fast_series[i], *fast_series[j], fps, size,
                                  {**cfg, "vel_s": cfg["burst_vel_s"]}, with_block=False)
-            segs = pair_segments(i, j, f, fps, cfg, fast)
-            feats[(i, j)] = f
-            pair_ids.append((i, j))
-            all_segs.extend(segs)
+            pairs.append((i, j, f, fast))
+    return {"fps": fps, "n": n, "mean_conf": mean_conf, "people": people, "pairs": pairs}
+
+
+def analyze_clip(t, cfg, clip_id="", category=""):
+    """Run the whole M9 analysis for one clip's tracks; returns (gate dict, key-pair states rows)."""
+    return finalize_clip(prepare_clip(t, cfg), cfg, clip_id, category)
+
+
+def finalize_clip(prep, cfg, clip_id="", category=""):
+    """Apply state thresholds to prepared features: segments, proposals, key pair, escalation, rows."""
+    fps, n, people = prep["fps"], prep["n"], prep["people"]
+    min_conf = cfg.get("min_track_conf", 0.0)
+    # drop tracks the detector itself barely believes in (typically objects such as chairs boxed as people)
+    dropped = sorted(tid for tid, c in prep["mean_conf"].items() if c < min_conf)
+    ids = [tid for tid in prep["mean_conf"] if tid not in dropped]
+
+    all_segs, feats, pair_ids = [], {}, []
+    for i, j, f, fast in prep["pairs"]:
+        if i in dropped or j in dropped:
+            continue
+        all_segs.extend(pair_segments(i, j, f, fps, cfg, fast))
+        feats[(i, j)] = f
+        pair_ids.append((i, j))
 
     # evidence per pair -> key pair
     def evidence(p):
@@ -383,6 +406,8 @@ def run(clean_manifest, cfg_assm, cfg_gate, only=None):
         gate, rows = analyze_clip(t, cfg, c["clip_id"], c["category"])
         write_outputs(gate, rows, out_dir, c["category"], c["clip_id"])
         gates.append(gate)
+        if len(gates) % 100 == 0:
+            print(f"  gate: {len(gates)} clips done", flush=True)
     if missing:
         log.warning("%d clips had no tracks (run M8a first)", missing)
     if not only:   # a partial run must not overwrite the corpus-wide hand-off file

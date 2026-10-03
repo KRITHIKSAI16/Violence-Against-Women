@@ -18,12 +18,13 @@ import csv
 import json
 import logging
 import os
+import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 
-from src.assm.gate import CORNER, ESCALATION, FOLLOW, HOVER, analyze_clip
+from src.assm.gate import CORNER, ESCALATION, FOLLOW, HOVER, analyze_clip, finalize_clip, prepare_clip
 from src.assm.track_poses import load_tracks
 from src.config import load_config, parse_overrides, resolve_path
 
@@ -68,27 +69,47 @@ def rates(gates):
     return out
 
 
-def _variant(args):
-    cfg, paths = args
-    items = [(cat, load_tracks(p)) for cat, p in paths]
-    r = rates(evaluate(items, cfg))
-    return r["_normal_flag"], r["_other_flag"]
+def _clip_job(args):
+    """One clip: prepare features ONCE, then evaluate every sweep variant on them. Returns (category, [flag per variant])."""
+    cat, path, cfg, variants = args
+    t = load_tracks(path)
+    keep = min(v.get("min_track_conf", cfg.get("min_track_conf", 0.0)) for v in variants)
+    prep = prepare_clip(t, cfg, keep_conf=keep)
+    return cat, [bool(finalize_clip(prep, v, "x", cat)[0]["flag"]) for v in variants]
 
 
-def sweep(paths, cfg, workers, target):
-    """One-at-a-time sweep over SWEEP. Returns (rows, best-per-parameter)."""
-    jobs, labels = [], []
-    for param, values in SWEEP.items():
-        for v in values:
-            jobs.append(({**cfg, param: v}, paths))
-            labels.append((param, v))
+def sweep(paths, cfg, workers, target, progress=True):
+    """One-at-a-time sweep over SWEEP. Returns (rows, best-per-parameter).
+
+    Cost = one feature computation per clip (not one per clip per variant), then cheap state rules per variant.
+    """
+    labels = [(param, v) for param, values in SWEEP.items() for v in values]
+    variants = [{**cfg, p: v} for p, v in labels]
+    jobs = [(cat, p, cfg, variants) for cat, p in paths]
+    flags = {i: [] for i in range(len(labels))}      # variant index -> [(is_normal, flagged)]
+    t0 = time.time()
     if workers > 1:
         with ProcessPoolExecutor(workers) as ex:
-            res = list(ex.map(_variant, jobs))
+            results = ex.map(_clip_job, jobs, chunksize=8)
+            for k, (cat, fl) in enumerate(results, 1):
+                for i, f in enumerate(fl):
+                    flags[i].append((cat == "Normal", f))
+                if progress and k % 50 == 0:
+                    print(f"  sweep: {k}/{len(jobs)} clips, {time.time() - t0:.0f}s", flush=True)
     else:
-        res = [_variant(j) for j in jobs]
-    rows = [{"param": p, "value": v, "normal_flag": n, "other_flag": o, "gap": o - n}
-            for (p, v), (n, o) in zip(labels, res)]
+        for k, job in enumerate(jobs, 1):
+            cat, fl = _clip_job(job)
+            for i, f in enumerate(fl):
+                flags[i].append((cat == "Normal", f))
+            if progress and k % 50 == 0:
+                print(f"  sweep: {k}/{len(jobs)} clips, {time.time() - t0:.0f}s", flush=True)
+    rows = []
+    for i, (p, v) in enumerate(labels):
+        nor = [f for isn, f in flags[i] if isn]
+        oth = [f for isn, f in flags[i] if not isn]
+        n = sum(nor) / len(nor) if nor else float("nan")
+        o = sum(oth) / len(oth) if oth else float("nan")
+        rows.append({"param": p, "value": v, "normal_flag": n, "other_flag": o, "gap": o - n})
     best = {}
     for param in SWEEP:
         ok = [r for r in rows if r["param"] == param and r["normal_flag"] <= target]
