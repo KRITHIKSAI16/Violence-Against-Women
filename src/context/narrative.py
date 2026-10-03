@@ -61,7 +61,7 @@ def scene_line(facts):
     place = facts["place_type"]
     if place != "unknown" and not facts["layout_reliable"]:
         place += " (uncertain)"
-    parts = [f"{place} scene" if place != "unknown" else "scene type unknown", "night / dark" if facts["night"] else "daylight / lit",
+    parts = [f"{place} scene" if place != "unknown" else "scene type unknown", "low-light scene (night or dark)" if facts["low_light"] else "normally lit scene",
              "moving camera (speeds less reliable)" if facts["camera_moving"] else "fixed camera",
              f"up to {facts['max_people']} people in view", f"only two people in view {facts['isolated_frac']:.0%} of the time"]
     if facts.get("doors"):

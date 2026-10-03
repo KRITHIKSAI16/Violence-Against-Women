@@ -250,6 +250,14 @@ def geometry_for(t, layout_facts, depth, scene, i, j):
             "size": (float(t["width"]), float(t["height"])), "feet": feet, "h": hpx, "depth_rows": rows, "fps": scene["fps"]}
 
 
+def _low_light(layout_facts, scene):
+    """Low light from the robust keyframe statistics (Stage B) if available, else from Stage A's mean-brightness flag (less reliable)."""
+    light = (layout_facts or {}).get("light") or {}
+    if light.get("low_light") is not None:
+        return bool(light["low_light"])
+    return bool(scene["camera"].get("night"))
+
+
 def build_story(t, scene, arrays, layout_facts, depth, ctx, story, clip_id="", category=""):
     """The whole story of a clip: scene facts, episodes of the top pairs, key pair, escalation, narrative-ready summaries."""
     from src.context.features import rank_pairs
@@ -271,7 +279,7 @@ def build_story(t, scene, arrays, layout_facts, depth, ctx, story, clip_id="", c
     facts = {
         "place_type": (layout_facts or {}).get("place_type", "unknown"), "layout_reliable": bool((layout_facts or {}).get("reliable")),
         "layout_conf": (layout_facts or {}).get("layout_conf"), "doors": len((layout_facts or {}).get("doors", [])),
-        "night": bool(scene["camera"].get("night")), "camera_moving": cam_moving, "max_people": scene["max_people"],
+        "low_light": _low_light(layout_facts, scene), "camera_moving": cam_moving, "max_people": scene["max_people"],
         "isolated_frac": scene["isolated_frac"], "n_pairs": scene["n_pairs"], "duration_s": scene["duration_s"],
         "depth_agree_frac": (depth or {}).get("depth_agree_frac"), "assumptions": scene["assumptions"],
     }

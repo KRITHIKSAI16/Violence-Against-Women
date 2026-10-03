@@ -157,3 +157,25 @@ def test_depth_samples_are_json_serialisable_and_agreement_counts_only_decisive_
     json.dumps(out)                                              # must not raise (numpy types)
     assert out["n_decisive"] == len(out["frames"]) == 6
     assert out["depth_agree_frac"] == 1.0                        # person 1: nearer by depth (0.8) AND taller box
+
+
+def test_light_facts_is_not_fooled_by_a_single_bright_lamp():
+    from src.context.scene import light_facts
+    night = np.full((120, 160), 15, np.uint8)
+    night[:, 88:] = 255                              # 45% of the frame is a glaring lamp / lit road: the MEAN (123) says 'lit', the median says 'dark'
+    assert night.mean() > 70 and light_facts([night])["low_light"] is True
+    day = np.full((120, 160), 140, np.uint8)
+    assert light_facts([day])["low_light"] is False
+    mostly_dark = np.concatenate([np.full((120, 100), 20, np.uint8), np.full((120, 60), 200, np.uint8)], axis=1)
+    assert light_facts([mostly_dark])["low_light"] is True                # 62% of pixels very dark
+    assert light_facts([])["low_light"] is None
+    f = layout_facts(np.zeros((128, 128), np.uint8), 0.9, light=light_facts([night]))
+    assert f["light"]["low_light"] is True
+
+
+def test_story_prefers_layout_light_over_the_stage_a_mean_brightness_flag():
+    from src.context.graph import _low_light
+    scene = {"camera": {"night": False}}
+    assert _low_light({"light": {"low_light": True}}, scene) is True       # lamp-lit night street: Stage A said 'not night', the robust statistic says low light
+    assert _low_light(None, {"camera": {"night": True}}) is True
+    assert _low_light({"light": {"low_light": None}}, scene) is False

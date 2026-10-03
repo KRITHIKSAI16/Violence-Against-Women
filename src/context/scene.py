@@ -62,7 +62,19 @@ def road_like_ids(id2label):
 
 
 # ---------------------------------------------------------------- layout facts (pure functions on label maps)
-def layout_facts(labels, conf, road_frac=0.0, moving_camera=False, min_conf=0.5):
+def light_facts(grays):
+    """Robust light statistics from grayscale keyframes: median luma and the share of very dark pixels.
+
+    The MEAN is fooled by a single street lamp (a night scene read as daylight), so low light = dark median or mostly dark pixels.
+    """
+    if not grays:
+        return {"median_luma": None, "dark_frac": None, "low_light": None}
+    med = float(np.median([np.median(g) for g in grays]))
+    dark = float(np.mean([(g < 50).mean() for g in grays]))
+    return {"median_luma": round(med, 1), "dark_frac": round(dark, 3), "low_light": bool(med < 70 or dark > 0.55)}
+
+
+def layout_facts(labels, conf, road_frac=0.0, moving_camera=False, min_conf=0.5, light=None):
     """Facts from a merged group-label map (H,W uint8, normalised coordinates)."""
     n = labels.size
     frac = {g: float((labels == c).sum() / n) for g, c in GROUP.items()}
@@ -81,7 +93,7 @@ def layout_facts(labels, conf, road_frac=0.0, moving_camera=False, min_conf=0.5)
                           "area": float(area / n)})
     doors.sort(key=lambda d: -d["area"])
     return {"fractions": {k: round(v, 3) for k, v in frac.items()}, "road_like_frac": round(float(road_frac), 3), "place_type": place,
-            "doors": doors[:4], "walkable_frac": round(frac["walkable"], 3), "layout_conf": round(float(conf), 3),
+            "doors": doors[:4], "walkable_frac": round(frac["walkable"], 3), "layout_conf": round(float(conf), 3), "light": light or light_facts([]),
             "reliable": bool(conf >= min_conf and not moving_camera)}
 
 
@@ -202,8 +214,9 @@ def read_frames(video_path, frame_ids):
 def clip_layout(video_path, n_frames, models, camera_moving, n_keyframes=5):
     """Majority-vote layout over evenly spaced keyframes -> (labels (128,128), facts dict)."""
     ids = np.linspace(0, max(0, n_frames - 1), n_keyframes + 2)[1:-1].astype(int)
-    maps, confs, roads = [], [], []
+    maps, confs, roads, grays = [], [], [], []
     for img in read_frames(video_path, ids).values():
+        grays.append(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
         m, c, r = models.segment(img)
         maps.append(m)
         confs.append(c)
@@ -214,7 +227,7 @@ def clip_layout(video_path, n_frames, models, camera_moving, n_keyframes=5):
     labels = np.zeros(stack.shape[1:], np.uint8)
     counts = np.stack([(stack == c).sum(0) for c in range(len(GROUP))])
     labels = counts.argmax(0).astype(np.uint8)
-    return labels, layout_facts(labels, float(np.mean(confs)), float(np.mean(roads)), camera_moving)
+    return labels, layout_facts(labels, float(np.mean(confs)), float(np.mean(roads)), camera_moving, light=light_facts(grays))
 
 
 def pair_depth_samples(t, scene, pair, labels, video_path, models, n_samples, end_frame):

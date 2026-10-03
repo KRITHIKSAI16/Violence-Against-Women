@@ -182,8 +182,8 @@ def test_narrative_text_notes_unconfirmed_and_benign_cues():
 
 
 def test_scene_line_reports_uncertainty_and_assumptions():
-    facts = {"place_type": "outdoor", "layout_reliable": False, "night": True, "camera_moving": True, "max_people": 3, "isolated_frac": 0.4, "doors": 1,
+    facts = {"place_type": "outdoor", "layout_reliable": False, "low_light": True, "camera_moving": True, "max_people": 3, "isolated_frac": 0.4, "doors": 1,
              "assumptions": {"fov_deg": 60.0, "person_height_m": 1.7}}
     s = scene_line(facts)
-    for needle in ("outdoor (uncertain)", "night", "moving camera", "3 people", "40%", "1 door", "60 degree"):
+    for needle in ("outdoor (uncertain)", "low-light", "moving camera", "3 people", "40%", "1 door", "60 degree"):
         assert needle in s
