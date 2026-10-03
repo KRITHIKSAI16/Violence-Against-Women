@@ -81,3 +81,35 @@ report:
   seed: 7
   review_flagged: 20         # review sheet: flagged clips to check by eye (precision)
   review_unflagged: 10       # review sheet: unflagged non-Normal clips to check (what was missed)
+
+# Deep context layer (src/context): camera, ground-plane geometry, pose features, following
+context:
+  context_dir: data/context
+  person_height_m: 1.7        # standing-height prior used to turn box heights into meters
+  fov_deg: 60.0               # assumed horizontal field of view (unknown for ExtrAnom; CCTV is typically 55-90)
+  smooth_s: 0.5               # trailing smoothing of ground-plane positions
+  vel_s: 0.5                  # velocity window
+  gap_fill_s: 0.3             # interpolate track dropouts up to this long
+  min_track_conf: 0.35        # ignore tracks with lower mean detection confidence
+  min_cotracked_s: 1.0        # ignore pairs seen together for less than this
+  max_pair_dist_m: 12.0       # pairs never closer than this are skipped
+  camera_max_side: 320        # camera-motion pass runs on frames downscaled to this size
+  camera_move_frac: 0.002     # per-frame translation (fraction of image side) above which the camera counts as moving
+  camera_moving_share: 0.30   # share of such frames above which the clip is "camera moving"
+  night_brightness: 70        # mean luma below this = night/dark
+  follow_window_s: 4.0        # window for the lagged-path follow score
+  follow_lag_min_s: 0.5
+  follow_lag_max_s: 6.0
+  follow_max_path_dev_m: 1.0  # follower within this of the leader's earlier position (mean over window)
+  follow_rel_dev: 0.6         # ... and closer to the leader's path than this share of the current separation
+  follow_min_leader_path_m: 2.0   # the leader must actually have walked this far in the window
+  follow_max_sep_m: 10.0
+  follow_min_s: 3.0           # follow must last this long to count
+  contact_wrist_m: 0.25       # wrist-to-torso keypoint distance (in body heights x 0.17 m scale) for contact, see pose_features
+  contact_max_ground_m: 1.2   # and the two people must be this close on the ground plane
+  facing_toward_deg: 60.0
+  facing_away_deg: 120.0
+  min_event_s: 0.5
+  min_ground_conf: 0.8        # speeds / following only for upright, uncropped people (box height is the depth cue)
+  flee_vel_s: 0.8             # running away is measured over this window (robust to box-height jitter)
+  flee_speed_ms: 2.2          # m/s: faster than a brisk walk, while moving away from the other person

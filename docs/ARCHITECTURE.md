@@ -130,3 +130,23 @@ is not annotated; 13-28% of clips per category have no trackable pair (Colab M8b
 `python -m pytest -q`: synthetic people with known motion (approach, follow, side-by-side, hover, corner, escalation, dropouts),
 file round trips, calibration, cut rules, rendered video frame counts, report numbers. No dataset or GPU needed; ffmpeg needed for the
 video/preprocess tests (skipped if missing).
+
+## 10. Deep context layer (`src/context/`, in progress)
+
+Motivation: the M9 rule gate (section 4) uses only 2D box-centre distance and speed. On the full set it flagged Normal clips more often than the buildup
+categories (27% vs 15%) and FOLLOW almost never fired. The deep layer uses what was already cached but unused (the 17 keypoints) plus real-world geometry.
+Still no prediction, no LLM, no identity / gender inference.
+
+| Module | What | Idea / source |
+|---|---|---|
+| `camera.py` | per-frame camera motion (sparse optical flow + RANSAC similarity), cumulative transform to frame 0, `moving`, brightness (`night`) | same idea as BoT-SORT camera-motion compensation; person boxes are masked out of the corner detection |
+| `ground.py` | ground plane (X lateral, Z depth) in meters: Z = f*1.7/h_px, X = (cx - W/2)*1.7/h_px, f from an assumed field of view (`context.fov_deg`) | monocular pedestrian metrology; Hall proxemic zones 0.46 / 1.2 / 3.7 / 7.6 m; `conf` 0.3 for cropped or sitting boxes |
+| `pose_features.py` | body facing (shoulder line + nose offset), head facing (nose/eyes vs ears), wrist-to-torso contact distance (m), reach speed (m/s) | AAAI 2024 hidden-follower work (gaze + spacing); NTU RGB+D pairwise-joint features |
+| `follow.py` | lagged-path following: follower(t) vs leader(t - tau), tau 0.5-6 s; must beat the present separation; the leader must really walk | Li et al., ICDM 2013, "Mining following relationships in movement data" |
+| `features.py` | orchestrator: per-pair arrays (`dist_m`, `closing_ms`, `zone`, `ang_i_to_j`, `follow_i_j`, `approach_behind_*`, `looking_back_*`, `mutual_facing`, `contact`, `reach_*`, `flee_*`) + first events + scene facts | writes `context/<Cat>/<clip>_pairs.npz` (keys `<i>_<j>__<feature>`) and `_scene.json` |
+
+Coordinates: X to the right, Z away from the camera; facing vectors use the same frame ("faces the camera" = (0,-1)). Angles are 0 deg when a person faces the other.
+Rules that came from looking at frames: speed-derived features (speed, flee, following) use only upright, uncropped people (`min_ground_conf`), because a box cut by the frame
+edge or a person leaning over a table gives a wrong depth and fake 4-9 m/s speeds. Reach and contact were checked by eye on two clips. The metric scale was checked
+(median moving speed 1.0-1.5 m/s). Assumptions (FOV, person height) are stored in every scene json. Stages B-E (scene segmentation, Depth Anything, interaction graph + narrative,
+learned window scorer with a style-confound probe, annotation benchmark) follow; see STATE.md.

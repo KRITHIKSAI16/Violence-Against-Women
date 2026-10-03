@@ -22,6 +22,18 @@ Last updated: 2026-10-03.  Code state: everything below is committed and pushed 
 
 Committed Phase 1 deliverable = M1 → M2 → M8 → M9 (+ the buildup report). Remaining for Phase 1: run notebook 04 on Colab, calibrate, review.
 
+## IN PROGRESS (2026-10-03): "deep context" layer, `src/context/`
+Why: the M9 rule gate flagged Normal 27% vs 15% for the other categories and FOLLOW fired in 2 of 793 clips. The new layer is built stage by stage
+(design in `docs/ARCHITECTURE.md` section 10):
+- **Stage A DONE locally (117 tests pass; NOT yet run on Colab)**: `camera.py` (camera motion, night), `ground.py` (meters from a 1.7 m height prior, Hall zones),
+  `pose_features.py` (body/head facing, contact, reach from the 17 keypoints), `follow.py` (lagged-path following), `features.py` (orchestrator + first events).
+  Colab: notebook `05_context_features.ipynb` (CPU, ~20-40 min). Findings on the 12 samples: median walking speed 1.0-1.5 m/s (the metric scale looks right); reach and
+  contact were real (Kidnapping_v41: a man grabs a woman; Assassination_v2: the grab); every first "flee" detection was a cropped-box artifact and is now suppressed
+  (speed-based features use only upright, uncropped people).
+- Stage B (scene segmentation + Depth Anything), Stage C (interaction graph, narrative, video upgrade), Stage D (window-level learning, style-confound probe, MIL, metrics),
+  annotation benchmark: NOT started. **Decision gate after Stage A on the full set**: do follow / approach-from-behind / looking-back / mutual-facing separate the buildup
+  categories from Normal? Run notebook 05 and look at the table.
+
 ## What was found on the full set (Colab, 2026-10-03)
 
 - **793 clips, very unbalanced**: Normal 294, Harassment 188, Chain_Snatching 176, Kidnapping 73, Stalking 39, Assassination 23.

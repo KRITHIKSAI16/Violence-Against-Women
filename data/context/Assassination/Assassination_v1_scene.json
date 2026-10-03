@@ -1,0 +1,28 @@
+{
+ "fps": 30.0,
+ "n_frames": 193,
+ "duration_s": 6.433,
+ "camera": {
+  "moving": false,
+  "moving_share": 0.0,
+  "drift_frac": 0.005,
+  "median_step_frac": 3e-05,
+  "brightness": 97.4,
+  "night": false,
+  "sharpness": 148.2,
+  "flow_ok_frac": 1.0
+ },
+ "n_tracks": 0,
+ "n_tracks_used": 0,
+ "n_pairs": 0,
+ "no_pair": true,
+ "max_people": 0,
+ "mean_people": 0.0,
+ "isolated_frac": 0.0,
+ "assumptions": {
+  "fov_deg": 60.0,
+  "person_height_m": 1.7
+ },
+ "pairs": {},
+ "clip_events": {}
+}
