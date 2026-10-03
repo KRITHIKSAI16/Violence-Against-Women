@@ -144,16 +144,31 @@ def best_f1_threshold(y, s):
     return float(cand[int(np.argmax(f))])
 
 
+def youden_threshold(y, s):
+    """Threshold maximising TPR - FPR. Unlike F1 it cannot collapse to 'call everything positive' when positives are the majority."""
+    y, s = np.asarray(y), np.asarray(s)
+    cand = np.unique(np.quantile(s, np.linspace(0.02, 0.98, 49)))
+    pos, neg = max(1, (y == 1).sum()), max(1, (y == 0).sum())
+    j = [((s >= t) & (y == 1)).sum() / pos - ((s >= t) & (y == 0)).sum() / neg for t in cand]
+    return float(cand[int(np.argmax(j))])
+
+
 def metrics(y, s, thr=None):
-    """AUC plus accuracy / precision / recall / F1 at a threshold (default: the F1-maximising one; optimistic, stated as such)."""
+    """AUC plus balanced accuracy / precision / recall / F1 at a threshold (default: Youden; chosen on the same scores, so optimistic).
+
+    `f1_all_positive` is the F1 of calling every clip positive: a model must beat it to say anything.
+    """
     y, s = np.asarray(y), np.asarray(s)
     if len(np.unique(y)) < 2:
         return {"n": len(y), "auc": np.nan}
-    thr = best_f1_threshold(y, s) if thr is None else thr
+    thr = youden_threshold(y, s) if thr is None else thr
     p = s >= thr
-    return {"n": int(len(y)), "auc": float(roc_auc_score(y, s)), "acc": float(accuracy_score(y, p)),
-            "precision": float(precision_score(y, p, zero_division=0)), "recall": float(recall_score(y, p, zero_division=0)),
-            "f1": float(f1_score(y, p, zero_division=0)), "thr": float(thr)}
+    pos_rate = float((y == 1).mean())
+    tpr = float(((p) & (y == 1)).sum() / max(1, (y == 1).sum()))
+    tnr = float(((~p) & (y == 0)).sum() / max(1, (y == 0).sum()))
+    return {"n": int(len(y)), "pos_rate": pos_rate, "auc": float(roc_auc_score(y, s)), "acc": float(accuracy_score(y, p)),
+            "balanced_acc": (tpr + tnr) / 2, "precision": float(precision_score(y, p, zero_division=0)), "recall": float(recall_score(y, p, zero_division=0)),
+            "specificity": tnr, "f1": float(f1_score(y, p, zero_division=0)), "f1_all_positive": 2 * pos_rate / (1 + pos_rate), "thr": float(thr)}
 
 
 def per_category_auc(cs):
@@ -163,6 +178,24 @@ def per_category_auc(cs):
     for cat in sorted(set(cs["category"]) - {"Normal"}):
         sub = pd.concat([cs[cs["category"] == cat], normal])
         out[cat] = float(roc_auc_score(sub["label"], sub["score"])) if sub["label"].nunique() == 2 else np.nan
+    return out
+
+
+def overlap_analysis(tables, lo=0.25, hi=0.75, min_per_class=15):
+    """Behavior discrimination on clips whose FILMING STYLE cannot tell the classes apart (style-only score in [lo, hi]).
+
+    This is the closest we can get to a like-for-like comparison when Normal comes from a different source: only clips that look alike
+    in style are compared. If fewer than `min_per_class` clips of a class remain, the answer is 'not enough comparable clips'.
+    """
+    st, be = tables.get("gb:style_only"), tables.get("gb:behavior")
+    if st is None or be is None:
+        return {}
+    keep = set(st.loc[st["has_pair"] & (st["score"] >= lo) & (st["score"] <= hi), "clip_id"])
+    sub = be[be["clip_id"].isin(keep)]
+    n_pos, n_neg = int((sub["label"] == 1).sum()), int((sub["label"] == 0).sum())
+    out = {"lo": lo, "hi": hi, "n_pos": n_pos, "n_neg": n_neg, "enough": bool(min(n_pos, n_neg) >= min_per_class)}
+    if out["enough"]:
+        out["behavior_auc"] = float(roc_auc_score(sub["label"], sub["score"]))
     return out
 
 
@@ -185,7 +218,7 @@ def run(windows, clips, cfg_learn, gate_dir=None, importance=True, kinds=("gb", 
     static = set(clips.loc[clips["cam_moving"] == 0, "clip_id"])
     for kind in kinds:
         for name, cols in FEATURE_SETS.items():
-            oof, imp = cross_validate(windows, cols, kind, folds, seed, importance=(importance and name == "behavior" and kind == "gb"))
+            oof, imp = cross_validate(windows, cols, kind, folds, seed, importance=(importance and name in ("behavior", "style_only") and kind == "gb"))
             print(f"  done: {kind}:{name}", flush=True)
             cs = clip_scores(windows, oof, clips, k)
             tables[f"{kind}:{name}"] = cs
@@ -198,7 +231,8 @@ def run(windows, clips, cfg_learn, gate_dir=None, importance=True, kinds=("gb", 
                 "per_category_auc_vs_normal": per_category_auc(cs),
             }
             if imp is not None:
-                res["importance"][kind] = imp.head(12).to_dict("records")
+                res["importance"][f"{kind}:{name}"] = imp.head(12).to_dict("records")
+    res["overlap"] = overlap_analysis(tables, lo=cfg_learn.get("overlap_lo", 0.25), hi=cfg_learn.get("overlap_hi", 0.75))
     if gate_dir is not None:
         g = gate_scores(clips, gate_dir)
         ok = ~np.isnan(g)
@@ -210,33 +244,43 @@ def run(windows, clips, cfg_learn, gate_dir=None, importance=True, kinds=("gb", 
 def print_results(res):
     print(f"\n{res['n_clips']} clips ({res['n_clips_with_pair']} with at least one usable pair), {res['n_windows']} windows. Labels: {res['label_counts']}\n")
     print("Clip-level discrimination: buildup categories (1) vs Normal (0), cross-validated by clip. AUC 0.5 = chance.")
-    print(f"{'model':<22}{'AUC all':>9}{'AUC pairs':>11}{'AUC static':>12}{'F1':>7}{'prec':>7}{'recall':>8}")
+    print("  'AUC all' counts clips without any usable pair as score 0 (so it is diluted by coverage); 'AUC pairs' uses only clips with a pair.")
+    print(f"{'model':<22}{'AUC all':>9}{'AUC pairs':>11}{'AUC static':>12}{'bal.acc':>9}{'prec':>7}{'recall':>8}{'specif.':>9}")
     for name, m in res["models"].items():
         a, p, s = m["all_clips"], m["clips_with_pair"], m["static_camera_clips"]
-        print(f"{name:<22}{a['auc']:>9.3f}{p['auc']:>11.3f}{s['auc']:>12.3f}{a.get('f1', np.nan):>7.2f}{a.get('precision', np.nan):>7.2f}{a.get('recall', np.nan):>8.2f}")
+        print(f"{name:<22}{a['auc']:>9.3f}{p['auc']:>11.3f}{s['auc']:>12.3f}{a.get('balanced_acc', np.nan):>9.2f}{a.get('precision', np.nan):>7.2f}"
+              f"{a.get('recall', np.nan):>8.2f}{a.get('specificity', np.nan):>9.2f}")
     if "rule_gate" in res:
         g = res["rule_gate"]["all_clips"]
-        print(f"{'M9 rule gate (flag)':<22}{g['auc']:>9.3f}{'':>11}{'':>12}{g['f1']:>7.2f}{g['precision']:>7.2f}{g['recall']:>8.2f}")
+        print(f"{'M9 rule gate (flag)':<22}{g['auc']:>9.3f}{'':>11}{'':>12}{g['balanced_acc']:>9.2f}{g['precision']:>7.2f}{g['recall']:>8.2f}{g['specificity']:>9.2f}")
+    base = next(iter(res["models"].values()))["all_clips"]
+    print(f"Reference: {base['pos_rate']:.0%} of clips are positive, so 'call everything positive' has F1 {base['f1_all_positive']:.2f} and balanced accuracy 0.50.")
     print("\nPer-category AUC against Normal (behavior model, gradient boosting):")
     for cat, v in res["models"].get("gb:behavior", {}).get("per_category_auc_vs_normal", {}).items():
         print(f"  {cat:<16}{v:.3f}")
-    for kind, imp in res["importance"].items():
-        print(f"\nPermutation importance, behavior model ({kind}); drop in window AUC when the feature is scrambled:")
-        for r in imp[:10]:
+    for name, imp in res["importance"].items():
+        print(f"\nPermutation importance, {name}; drop in window AUC when the feature is scrambled:")
+        for r in imp[:8]:
             print(f"  {r['feature']:<18}{r['importance']:+.4f}")
+    ov = res.get("overlap", {})
+    if ov:
+        print(f"\nStyle-matched comparison (clips whose filming style cannot separate the classes, style score {ov['lo']}-{ov['hi']}): "
+              f"{ov['n_pos']} buildup vs {ov['n_neg']} Normal clips.", end=" ")
+        print(f"Behavior AUC there: {ov['behavior_auc']:.3f}" if ov.get("enough") else "Too few comparable clips to say anything.")
     sty, beh = res["models"].get("gb:style_only", {}), res["models"].get("gb:behavior", {})
     if sty and beh:
-        s_auc, b_auc = sty["all_clips"]["auc"], beh["all_clips"]["auc"]
+        sp, bp = sty["clips_with_pair"]["auc"], beh["clips_with_pair"]["auc"]
+        bs = beh["static_camera_clips"]["auc"]
         print("\nHow to read this:")
-        print(f"  style_only AUC {s_auc:.3f} vs behavior AUC {b_auc:.3f}.", end=" ")
-        if max(s_auc, b_auc) < 0.6:
-            print("Neither how the clips were filmed nor the behavior features separate buildup clips from Normal in this data (both near chance).")
-        elif s_auc >= b_auc - 0.02:
-            print("The way the clips were filmed separates the classes about as well as the behavior does: treat behavior results as unproven.")
-        else:
-            print("Behavior carries signal beyond how the clips were filmed.")
-        print("  AUC on static-camera clips is the fairer number. Labels are weak (the category, not a per-second annotation): an AUC well below 0.8 means the")
-        print("  features cannot reproduce the category, not that the detectors are wrong; confirm with the annotated benchmark.")
+        print(f"  Among clips with a pair: style_only AUC {sp:.3f}, behavior AUC {bp:.3f}; behavior on static-camera clips {bs:.3f}.")
+        if sp > 0.9:
+            print("  SOURCE LEAKAGE: how the clips were filmed (see the style_only importance above, usually original resolution / frame rate) identifies the class almost perfectly.")
+            print("  Normal comes from a different kind of footage than the other categories, so any classifier on this label can win by recognising the source.")
+        if bs < 0.6 and bp < 0.75:
+            print("  Behavior features do not separate buildup categories from Normal once the camera is still: they cannot reproduce the category labels.")
+        elif bp > sp + 0.02:
+            print("  Behavior carries signal beyond how the clips were filmed.")
+        print("  The labels are weak (the clip's category, not what happens each second), so this does not say the detectors are wrong; the annotated benchmark measures that.")
 
 
 def main():

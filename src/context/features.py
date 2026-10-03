@@ -198,6 +198,23 @@ def clip_events(scene):
     return out
 
 
+CONCERN_WEIGHTS = {"follow_i_j": 2.0, "follow_j_i": 2.0, "approach_behind_i_j": 1.0, "approach_behind_j_i": 1.0, "looking_back_i": 1.5, "looking_back_j": 1.5,
+                   "contact": 2.0, "reach_i_to_j": 2.0, "reach_j_to_i": 2.0, "flee_i": 1.5, "flee_j": 1.5}
+
+
+def rank_pairs(scene, top=2):
+    """Pair keys ("i_j") ordered by how much buildup evidence they carry (weighted event seconds + time spent within personal distance).
+    Pairs without any evidence are still ranked (by closeness) so the busiest interaction is always found; mutual facing counts against."""
+    scored = []
+    for key, ev in scene["pairs"].items():
+        e = sum(ev[n]["seconds"] * w for n, w in CONCERN_WEIGHTS.items() if n in ev)
+        e += 0.3 * ev.get("intimate_or_personal_s", 0.0)
+        e -= 0.5 * ev.get("mutual_facing", {}).get("seconds", 0.0)
+        scored.append((e, key))
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    return [k for _, k in scored[:top]]
+
+
 def save_context(scene, arrays, out_dir, category, clip_id):
     d = Path(out_dir) / category
     d.mkdir(parents=True, exist_ok=True)

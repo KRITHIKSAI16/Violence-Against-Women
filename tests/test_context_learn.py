@@ -6,7 +6,7 @@ import pytest
 from src.config import load_config
 from src.context.features import analyze_context, load_context, save_context
 from src.context.learn import (FEATURE_SETS, best_f1_threshold, build_tables, clip_scores, clip_weights, metrics,
-                               per_category_auc, run)
+                               overlap_analysis, per_category_auc, run, youden_threshold)
 from src.context.windows import BEHAVIOR, SCENE, STYLE, pair_windows, window_features
 from tests.test_context_features import world
 
@@ -159,3 +159,34 @@ def test_max_pairs_keeps_the_closest_pairs(tmp_path):
     w_cap, _ = build_tables(clean, {}, tmp_path, tmp_path / "g", CTX, CFG["report"], 3.0, 1.5, max_pairs=3)
     assert w_all["pair"].nunique() == 10 and w_cap["pair"].nunique() == 3
     assert w_cap["d_mean"].max() <= w_all["d_mean"].quantile(0.5) + 1e-6          # the kept pairs are the close ones
+
+
+def test_youden_threshold_does_not_collapse_to_all_positive_when_positives_are_the_majority():
+    rng = np.random.default_rng(0)
+    y = np.r_[np.ones(63), np.zeros(37)].astype(int)
+    s = np.r_[rng.normal(0.6, 0.2, 63), rng.normal(0.4, 0.2, 37)]            # a weak but real signal
+    m = metrics(y, s)
+    assert m["specificity"] > 0.3 and m["recall"] < 0.99                       # F1-optimisation would call everything positive here
+    assert m["f1_all_positive"] == pytest.approx(2 * 0.63 / 1.63) and m["balanced_acc"] > 0.55
+    assert 0.0 <= youden_threshold(y, s) <= 1.0
+
+
+def test_metrics_on_pure_noise_have_balanced_accuracy_near_half():
+    rng = np.random.default_rng(1)
+    y = (rng.random(400) < 0.63).astype(int)
+    m = metrics(y, rng.random(400))
+    assert abs(m["balanced_acc"] - 0.5) < 0.08 and abs(m["auc"] - 0.5) < 0.08
+
+
+def test_overlap_analysis_needs_enough_comparable_clips_per_class():
+    def table(scores, labels):
+        return pd.DataFrame({"clip_id": [f"c{i}" for i in range(len(scores))], "score": scores, "label": labels, "has_pair": True})
+    rng = np.random.default_rng(2)
+    n = 60
+    style = table(np.r_[rng.uniform(0.0, 0.1, n), rng.uniform(0.9, 1.0, n)], [0] * n + [1] * n)          # style separates perfectly: nothing overlaps
+    beh = table(rng.random(2 * n), [0] * n + [1] * n)
+    out = overlap_analysis({"gb:style_only": style, "gb:behavior": beh})
+    assert out["n_pos"] == 0 and out["n_neg"] == 0 and not out["enough"] and "behavior_auc" not in out
+    style2 = table(rng.uniform(0.3, 0.7, 2 * n), [0] * n + [1] * n)                                        # style says nothing: everything overlaps
+    out2 = overlap_analysis({"gb:style_only": style2, "gb:behavior": beh})
+    assert out2["enough"] and 0.3 < out2["behavior_auc"] < 0.7

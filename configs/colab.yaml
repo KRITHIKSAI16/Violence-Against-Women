@@ -110,6 +110,8 @@ context:
   facing_toward_deg: 60.0
   facing_away_deg: 120.0
   min_event_s: 0.5
+  layout_keyframes: 5          # Stage B: frames segmented per clip (majority vote)
+  depth_frames: 12             # Stage B: frames of the key pair run through Depth Anything
   min_ground_conf: 0.8        # speeds / following only for upright, uncropped people (box height is the depth cue)
   flee_vel_s: 0.8             # running away is measured over this window (robust to box-height jitter)
   flee_speed_ms: 2.2          # m/s: faster than a brisk walk, while moving away from the other person
