@@ -1,139 +1,89 @@
 # VAW Capstone — Current State
 
-This file tracks where the project actually stands, updated as work happens.
-`PROJECT_BRIEF.md` has the full stable context (scope, dataset, module
-spec, constraints) and should not need to change often. This file changes
-often — read it to know what's actually done vs. still TODO.
+Where the project actually stands. `PROJECT_BRIEF.md` = stable context (scope, dataset, module spec, constraints).
+`docs/ARCHITECTURE.md` = how it is built (data flow, file formats, design decisions). `docs/PHASE1_PLAN.md` = the plan.
+This file changes often: read it to know what is done, what was found, and what to do next.
 
-Last updated: 2026-10-02 (end of session 1)
+Last updated: 2026-10-03.  Code state: everything below is committed and pushed to `origin/main`; `python -m pytest -q` passes.
 
 ---
 
-## Module status (using the report's own M1–M9 numbering — see PROJECT_BRIEF.md §4)
+## Module status (report numbering M1–M9; see PROJECT_BRIEF.md §4)
 
 | # | Module | Status | Notes |
 |---|--------|--------|-------|
-| M1 | Data Acquisition | Built, tested locally | `src/data/manifest.py` writes `data/manifest.json` (12/12 sample clips, 0 skipped; corrupt-file skip tested). Not yet run on full Drive set (Colab) |
-| M2 | Preprocessing | Built, tested locally | `src/data/preprocess.py`: ffmpeg re-encode to 30 fps, longest side 640 (aspect kept), denoise off by default; writes data/processed/ + data/manifest_clean.json. 12/12 ok; corrupt-file skip tested. Not yet run on full set |
-| M3 | Pre-Violence Segment Identification | Not started | No annotation needed — uses ExtrAnom folder names as native labels directly (see PROJECT_BRIEF.md §3) |
-| M4 | Feature Engineering & Caching | Not started | |
-| M5 | Exploratory Data Analysis | Not started | |
-| M6 | Baseline Classifier | Not started | |
-| M7 | Benchmark Evaluation | Not started | |
-| M8 | Adaptive Suspicious Activity Screening (ASSM) | M8a + M8b built, tested locally | M8a `track_poses.py` (YOLOv8n-pose + ByteTrack -> `data/tracks`); M8b `interaction.py` (Algorithm 1: d in body heights, closing speed, b_ij with frame-edge exit -> `data/scores/*_pairs.csv`, `*_curve.csv`); tools `render.py` (annotated video) and `hand_check.py` (independent recompute, all OK). Tracking quality (2026-10-02): model run at conf 0.1 with `configs/bytetrack_vaw.yaml` (high 0.4 / low 0.1, buffer 90) + `stitch_tracks` (joins broken tracklets of one person; raw ids kept as `raw_track_id`); ids per clip dropped e.g. Kidnapping_v28 14->5, Stalking_v3 6->4, and Stalking_v3's woman keeps one id. Known limits: small/distant people missed (Assassination_v1, Stalking_v9 = no interaction); `v` spikes on jittery/false boxes (Normal_v6). Weights still 1/1/1, tau not chosen. See `docs/VERIFY_M8.md`. Not yet run on Colab |
-| M9 | Selective Activation | Not started | Depends on M8 |
+| M1 | Data Acquisition | **Done, run on full Drive set** | `src/data/manifest.py`. 793 clips, 0 skipped (after AV1 fix). OpenCV metadata, ffprobe fallback for AV1 |
+| M2 | Preprocessing | **Done, run on full Drive set** | `src/data/preprocess.py`. 793/793 to 30 fps, longest side 640, aspect kept. Denoise off (config flag) |
+| M3–M7 | Segments, features, EDA, baseline classifier, benchmark | Not started | M3 needs the "whole clip vs trimmed" decision (see open questions) |
+| M8a | Track + pose | **Done, run on full Drive set** | `src/assm/track_poses.py`: YOLOv8n-pose + ByteTrack (conf 0.1, `configs/bytetrack_vaw.yaml`) + `stitch_tracks`; cache `tracks/*.npz` |
+| M8b | Algorithm 1 scores | **Done, run on full Drive set** | `src/assm/interaction.py`; tools `render.py`, `hand_check.py` (hand recompute OK on Colab, Stalking_v3) |
+| M9 | Selective Activation (behavior states) | **Built and tested locally; NOT yet run on Colab** | `src/assm/gate.py`, `calibrate.py`, `hand_check_gate.py` |
+| Deliverable | Buildup videos + category report | **Built and tested locally; NOT yet run on Colab** | `src/report/buildup_video.py`, `buildup_report.py`; Colab notebook `04_m9_buildup_report.ipynb` |
 
-**Committed Phase 1 deliverable = M1 → M2 → M8 → M9** (independent track,
-doesn't require M3–M7 to be done first — see PROJECT_BRIEF.md §6).
-M3–M7 are the natural next set once that track is solid.
+Committed Phase 1 deliverable = M1 → M2 → M8 → M9 (+ the buildup report). Remaining for Phase 1: run notebook 04 on Colab, calibrate, review.
 
-## Repo / environment setup status
+## What was found on the full set (Colab, 2026-10-03)
 
-- [x] ExtrAnom sample data in place: `data/sample/<Category>/`, 2 clips each (local only, git-ignored)
-- [x] Claude Code installed and pointed at the project folder (VAW)
-- [x] Minimal scaffold: `configs/`, `src/`, `tests/`, `requirements.txt`, `.gitignore`, `README.md`, `CLAUDE.md`, `docs/`
-- [x] Git repo, private GitHub repo `KRITHIKSAI16/Violence-Against-Women`, pushed
-- [x] `tests/` for M1 + M2 (12 pytest tests pass)
-- [x] `colab/` folder: `01_setup_and_m1_m2.ipynb`, `colab/README.md`, `configs/colab.yaml` (not yet run on Colab)
-- [ ] Teammates added as collaborators on GitHub
-- [ ] ExtrAnom Drive folder added as a shortcut to "My Drive" + `GITHUB_TOKEN` Colab secret (see `colab/README.md`)
-- [ ] First Colab run of notebook 01 on the full set
+- **793 clips, very unbalanced**: Normal 294, Harassment 188, Chain_Snatching 176, Kidnapping 73, Stalking 39, Assassination 23.
+  (The brief used to say ~140-150: wrong.)
+- M8b "no interaction" (fewer than 2 people ever tracked together): Assassination 3/23, Chain 35/176, Harassment 25/188, Kidnapping 11/73,
+  Normal 69/294, Stalking 11/39 (13-28% per category). Detector limits: small/distant/cropped people.
+- **The M8b score does not separate categories**: mean of per-clip means Normal 1.80, Harassment 1.44, Chain 1.41, Assassination 1.01,
+  Stalking 0.94, Kidnapping 0.74 (mean p95: Normal 3.60, Chain 3.74, Harassment 3.63, Stalking 2.98, Kidnapping 2.73, Assassination 3.17).
+  One scalar mixes closeness/approach/blocking and cannot say what is happening. This is why M9 is behavior states (decision below).
+- 3 Kidnapping clips are AV1 (OpenCV on Colab cannot decode): fixed with an ffprobe fallback; M2 re-encodes them.
+- Local sample (12 clips) with default thresholds, M9: Kidnapping_v28 CORNER (id4 blocks id5, 2.2-3.8 s) then burst 3.9 s; Assassination_v2 APPROACH
+  3.6-5.3 s then burst 5.6 s; Normal_v6 flagged HOVER (a man walks up to a seated woman at home: a geometry false alarm); Stalking_v3 NOT flagged
+  (the scooter rider stays within arm's reach only ~1.5 s; with `hover_min_s=1.5` it flags, along with more false alarms). These are
+  12-clip observations, not rates: calibrate on the full set.
 
-## Decisions made this session (2026-10-02)
+## Decisions and why
 
-- **Corrected the module framework entirely.** Earlier session drafts used
-  invented module names and an LLM-annotation-based "context understanding"
-  plan. Re-read the actual submitted Review Report I: Phase 1 is already
-  specified as Modules M1–M9 (Screening + Understanding stages only, no
-  lead-time prediction, no annotation step). The supervisor's instruction
-  to focus on "pre-violence buildup" for Phase 1 is a correction back to
-  this original M1–M9 spec, not a new direction.
-- M8's **Algorithm 1** (pairwise interaction score: `score_ij = w1/d_ij +
-  w2·v_ij + w3·b_ij`, using YOLOv8-Pose + ByteTrack) is the concrete,
-  already-specified mechanism that produces the "buildup context" —
-  computed per-frame across a clip, it traces the behavioral escalation
-  curve directly. Full algorithm in PROJECT_BRIEF.md §4.1.
-- Dropped the LLM annotation module (`src/annotate/`) entirely — not part
-  of the report's Phase 1 spec, do not resurrect it.
-- Reconfirmed ExtrAnom as the primary (only, for now) Phase 1 dataset.
-  Its category folder names serve directly as M3's "native labels" — no
-  annotation needed to produce them. UCF-Crime work (including its Gemini
-  onset annotations) is archived/reference-only.
-- Reconfirmed working split: Claude Code does local scaffolding/coding on
-  the laptop; Colab is batch-GPU-only, pulling from GitHub; user pushes to
-  GitHub manually, not Claude Code.
-- New committed Phase 1 deliverable: **M1 → M2 → M8 → M9**, chosen because
-  it's a self-contained track per the report's own figure (M8–M9 run in
-  parallel with M1–M7, not after).
+- **Scope**: Phase 1 = M1–M9 only (report's own split). No lead-time prediction, no LLM annotation layer (`src/annotate/` must not return).
+- **M8 split** into M8a (slow, GPU, cached) and M8b (cheap): retune without rerunning YOLO; cache is Phase II's input.
+- **Body-height units** for distance/speed, **nearest frame edge as stand-in exit** for b_ij (no exit map in ExtrAnom), weights w1=w2=w3=1 (not tuned).
+- **Tracking**: model run at conf 0.1 so ByteTrack's low-confidence pass works, buffer 90, plus tracklet stitching (ids per clip dropped, e.g.
+  Kidnapping_v28 14→5, Stalking_v3 6→4). Raw ids kept as `raw_track_id`.
+- **M9 = interpretable behavior states** (APPROACH, FOLLOW, HOVER, CORNER, ESCALATION) with roles and durations, flagged when FOLLOW/HOVER/CORNER or
+  APPROACH→ESCALATION; ordered-progression flag; tracks with mean detection confidence < 0.35 ignored (chair boxed as person in Normal_v6).
+  Thresholds are physical defaults NOT yet calibrated on the full set.
+- **Deliverable**: buildup video that stops BEFORE the detected escalation (cut = escalation − 1.0 s; uniform 3 s tail trim for act categories with no
+  detection; per-clip override CSV), storyboard, category report with Normal as false-alarm baseline, showcase = top-evidence + random clips,
+  human review sheet. Cut margin 1.5 s was tried and hid almost all the cornering in Kidnapping_v28; default is 1.0 s (configurable).
+- **Git**: Claude Code may commit and push to `origin main` (no force-push, never commit videos/Drive data). Teammates' Claude: ask your user first.
 
-- **Git policy changed:** user authorized Claude to commit and push to `origin main` (no force-push, no data files).
-- **Phase 1 plan agreed** (see `docs/PHASE1_PLAN.md`): M8 split into M8a (track+pose, cached) and M8b (scoring), then
-  M9 gate and a per-category buildup report. `b_ij` uses nearest frame edge as stand-in exit (pending user's final confirm).
+## What to do next (in order)
 
-## Immediate next steps (in order)
+1. **Colab**: `git pull`, run notebook `colab/04_m9_buildup_report.ipynb` (CPU is enough). Read the calibration tables (Normal flag rate vs others).
+2. Choose thresholds from the sweep (`--set` in the notebook, then copy into `configs/extran.yaml` + `configs/colab.yaml` `gate:` and push). Rerun gate + report.
+3. Fill `report/review_sheet.csv` by eye (2 reviewers if possible); report precision by eye, not the in-sample rates. Watch every clip you will present;
+   add `clip_id,cut_s` lines to `configs/clip_overrides.csv` for any clip where the automatic cut shows the act.
+4. Decide with the supervisor: how to describe the results (see limits), and whether Normal (phone-style footage) needs a style-matched comparison.
+5. If time remains in Phase 1: M3 (segment pairs from native labels) → M4 (features) → M5 (EDA) → M6 (baseline) → M7 (benchmark).
+6. Phase II (M10–M13) hand-off is described in `docs/ARCHITECTURE.md` §7.
 
-0. (done) Steps 1-2 below plus tests and the Colab folder. Next real work: confirm `b_ij` choice and OK to
-   download yolov8n-pose.pt + torch, then build **M8a**.
+## Setup checklist
 
-1. Confirm the scaffolding prompt finished correctly — check the folder
-   tree Claude Code produced, confirm `data/sample/` was untouched.
-2. User: `git init`, create private GitHub repo, connect remote, first
-   commit + push (manual steps given earlier — not repeated here).
-3. **M1** — Build `src/data/manifest.py` against the 12 local sample clips:
-   scans `data/sample/<Category>/`, emits a manifest with clip_id/category/
-   label (Normal = negative, all others = positive)/source/path.
-4. **M2** — Build `src/data/preprocess.py`: corrupt-clip handling, frame
-   rate/resolution normalization, logging of clip duration/frame count.
-5. **M8** — Re-point existing YOLOv8-Pose code at ExtrAnom sample clips
-   (not old UCF-Crime paths), add ByteTrack (`tracker="bytetrack.yaml",
-   persist=True`), then implement Algorithm 1 exactly as specified in
-   PROJECT_BRIEF.md §4.1 — output per-clip `{score_ij}` timelines.
-6. **M9** — Build the selective-activation heuristic on top of M8's
-   output: decide, per segment, whether it crosses into "needs deeper
-   analysis" based on sustained high interaction scores.
-7. Once M1/M2/M8/M9 work on the 12-clip local sample, move to Colab: add
-   ExtrAnom Drive shortcut, `git pull`, run the same scripts against the
-   full ~140-150 clip dataset.
-8. If time remains in Phase 1: M3 (segment pairing from native labels) →
-   M4 (feature caching) → M5 (EDA) → M6 (baseline classifier) → M7
-   (benchmark evaluation).
+- [x] ExtrAnom sample data local: `data/sample/<Category>/` (2 per category, git-ignored); full set on Drive (shortcut in My Drive)
+- [x] Scaffold, private GitHub repo `KRITHIKSAI16/Violence-Against-Women`, README, CLAUDE.md, docs
+- [x] pytest suite (`tests/`), Colab notebooks 01–04 + `colab/README.md`, `configs/colab.yaml`
+- [x] Colab run: M1, M2, M8a, M8b on the full set
+- [ ] Teammates added as GitHub collaborators (each needs the `GITHUB_TOKEN` Colab secret, see `colab/README.md`)
+- [ ] Colab run: M9 + report (notebook 04), calibration, review sheet
 
-## First Colab run (2026-10-03) - findings
-- Full ExtrAnom on Drive = **790 clips**, not ~140-150: Assassination 23, Chain_Snatching 176, Harassment 188,
-  Kidnapping 70, Normal 294, Stalking 39 (heavily imbalanced; Stalking, the key category, is the smallest big one).
-  M8a on 790 clips will take roughly 65x the 12-clip time on CPU; use the GPU runtime.
-- 3 Kidnapping clips (v2, v3, v6) are AV1: OpenCV on Colab cannot decode them. Fixed: M1 falls back to ffprobe
-  for metadata, M2 re-encodes via ffmpeg to H.264. Re-run notebook 01 after `git pull`.
+## Known limits (state them when presenting)
+2D pixel geometry (camera angle; hand-held cameras corrupt velocities); small/distant people missed; false boxes; domestic scenes look like stalking;
+no annotation of where the act starts (cut is a heuristic, check showcase clips); thresholds tuned in-sample; Normal clips are visually different
+from the other categories; Algorithm 1's weights/tau never tuned (M8b kept as the report's algorithm and for Phase II).
 
-## Open questions / things to confirm with supervisor or team
-
-- Exact values for Algorithm 1's weights (`w1, w2, w3`) and trigger
-  threshold (`τ_interaction`) — not fixed in the report. Plan: start with
-  equal weights, compute score distributions on the 12 sample clips, tune
-  from there before running at full scale.
-- Need a static "marked exits" map for the `b_ij` path-obstruction term in
-  Algorithm 1 — the report assumes this exists (e.g. for a monitored
-  corridor/building). For ExtrAnom's varied, uncontrolled scenes, decide
-  whether to: (a) skip `b_ij` for Phase 1 and use only distance + closing
-  speed, (b) approximate "exit" as frame edges/off-screen direction, or
-  (c) define per-clip manually for a small pilot set. Needs a decision
-  before M8 is finalized — flagged for the team/supervisor.
-- Whether Assassination/Chain_Snatching/Kidnapping clips should be used
-  whole in M3, or trimmed (e.g. drop the last 1–2 seconds) so the later
-  baseline classifier (M6) focuses on pre-violence context rather than the
-  overt violent act itself. Leaning toward a simple fixed trim rule,
-  applied uniformly — not decided yet.
-- Whether UCF-Crime will be reintroduced later as a secondary/
-  generalization dataset — not needed now, revisit after M1/M2/M8/M9 are
-  done.
+## Open questions
+- Final M9 thresholds (after calibration). Is a hover of ~1.5-2 s meaningful (it flags Stalking_v3 but also more Normal), or should Stalking be
+  described as "approach + brief close contact"?
+- M3: use Assassination/Chain_Snatching/Kidnapping clips whole or trimmed (uniform rule, e.g. same cut as the video)? Not decided.
+- Reintroduce UCF-Crime later as a generalization set? Not needed now.
+- Supervisor: is the behavior-state view (instead of the single Algorithm 1 score) acceptable as M9's "interaction heuristics"? It implements the same
+  three heuristics the report names.
 
 ## How to keep this file useful
-
-Update this file (not `PROJECT_BRIEF.md`) whenever:
-- a module (M1–M9) status changes
-- a setup checklist item gets done
-- a new decision gets made that affects what to build next
-- a new open question comes up, or an existing one gets resolved
-
-Keep `PROJECT_BRIEF.md` stable — only edit it if the module spec, dataset,
-or constraints themselves actually change again.
+Update this file (not `PROJECT_BRIEF.md`) when a module status changes, a checklist item is done, a decision is made, or a question is resolved.
+Edit `PROJECT_BRIEF.md` only if the spec, dataset or constraints change.

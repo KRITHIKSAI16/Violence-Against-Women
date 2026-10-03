@@ -100,13 +100,13 @@ interpretable score itself is the context/explanation output for Phase 1.
 - Video-only dataset (no existing labels beyond folder/category name, no
   timestamps, no metadata files) — this is exactly the kind of input M3
   expects ("cleaned corpus with its native violence/non-violence labels")
-- Organized as one folder per category, each ~23–25 clips:
-  - `Assassination`
-  - `Chain_Snatching`
-  - `Harassment`
-  - `Kidnapping`
-  - `Normal`
-  - `Stalking`
+- Organized as one folder per category (**793 clips in total, very unbalanced**, counted on the Drive copy on 2026-10-03):
+  - `Assassination` (23)
+  - `Chain_Snatching` (176)
+  - `Harassment` (188)
+  - `Kidnapping` (73)
+  - `Normal` (294)
+  - `Stalking` (39)
 - The category folder name IS the native label M3 consumes. No annotation
   step is needed to produce it.
 - **Stalking** and **Harassment**: the entire clip length is the relevant
@@ -123,9 +123,13 @@ interpretable score itself is the context/explanation output for Phase 1.
 - **Normal** is the negative class, used as M3's comparison windows.
 - Currently: 2 sample clips per category downloaded locally to the project
   under `data/sample/<Category>/` (12 clips total) for development with
-  Claude Code. The full dataset (~23–25 clips/category, ~140–150 clips
-  total) lives in Google Drive under a "Shared with me" folder named
-  `ExtrAnom`, and is processed via Google Colab (GPU), not on the laptop.
+  Claude Code. The full dataset (793 clips, counts above — an earlier note
+  said ~140-150, that was wrong) lives in Google Drive under a "Shared with me"
+  folder named `ExtrAnom`, and is processed via Google Colab (GPU), not on the
+  laptop. Dataset quirks found on the first Colab run: 3 Kidnapping clips are AV1
+  (OpenCV cannot decode them on Colab; M1 falls back to ffprobe and M2 re-encodes
+  to H.264); many Normal clips are 60 fps phone-style footage while the other
+  categories are mostly CCTV-style, so Normal differs in look as well as behavior.
 - To make the ExtrAnom folder reliably visible inside Colab, it should be
   added as a shortcut to "My Drive" (right-click the shared folder → "Add
   shortcut to Drive") rather than relied upon as a Shared-with-me path.
@@ -178,6 +182,14 @@ submitted to the supervisor.
 | **M7** | Benchmark Evaluation | Baseline predictions | Compute Accuracy, Precision, Recall, F1-score | Benchmark report (comparison point for Phase II) | M6 |
 | **M8** | Adaptive Suspicious Activity Screening Module (ASSM) | Raw frames | Lightweight person detection + pose (YOLOv8/YOLOv8-Pose), ByteTrack for persistent identity across frames, compute pairwise interaction scores (Algorithm 1, §4.1 below) between tracked people every frame | Candidate interaction signals with persistent track IDs | none — independent track, runs on every frame regardless of M1–M7 |
 | **M9** | Selective Activation | M8 interaction signals | Apply interaction heuristics (tracking persistence, sudden abnormal motion, path blocking) to decide whether a segment needs deeper analysis | Temporal proposals (validated in Phase I, routed to Phase II's M10 later) | M8 |
+
+**How M9 is implemented (decided 2026-10-03, see docs/ARCHITECTURE.md):** the single
+M8b score cannot say *what* is happening (on the full set Normal clips scored highest, mean 1.80 vs
+Stalking 0.94), so M9 turns the same cached tracks into interpretable behavior states per pair —
+APPROACH, FOLLOW, HOVER, CORNER, ESCALATION — with who-does-what and durations. These implement the
+report's three M9 heuristics (persistence, path blocking, sudden motion). A clip is flagged when FOLLOW, HOVER or CORNER
+occurs, or an APPROACH ends in ESCALATION. Output = temporal proposals. The "buildup video" deliverable
+shows this context up to just before the detected escalation, never the violence.
 
 **Important structural note from the report's own figure (Fig 3.2):** M8–M9
 form an independent track that depends only on off-the-shelf detection/pose
@@ -280,6 +292,7 @@ permitting within Phase 1.
 - **Git:** as of 2026-10-02 the user authorized Claude Code to commit AND push to
   `origin main` itself (no force-push, never commit videos/Drive data). The repo is
   shared with 3 teammates, so keep commits small and traceable to a module.
+  (If you are a teammate's Claude Code: ask your user before pushing.)
 - Prefers code delivered in clear, individually runnable pieces/cells where
   relevant, with the "why" behind each step explained, not just code
   dumped with no rationale.
@@ -310,6 +323,15 @@ permitting within Phase 1.
 - **Shared-with-me Drive folders are unreliable paths inside Colab** —
   add a shortcut to "My Drive" first, or mounting/listing can silently
   fail or point to the wrong location.
+
+- **Colab sessions drop**: M8a (tracks) and M2 are resumable (finished clips are skipped on rerun); never use
+  `--force` casually, it recomputes everything.
+- **`gate --set key=value` overwrites the gate outputs** with those thresholds (recorded under `params` in each
+  gate json). Run `python -m src.assm.gate` again with no `--set` to restore the config defaults.
+- **Windows + git-bash**: `/tmp` paths are not visible to Python; write files with the editor tools, not heredocs with
+  nested quotes.
+- **False boxes**: detectors box chairs/scooters as people and miss small or distant people (13-28% of clips per category have no
+  trackable pair). M9 ignores tracks with mean detection confidence below `gate.min_track_conf`; the rest is a known limit.
 
 ## 9. Tooling stack
 
