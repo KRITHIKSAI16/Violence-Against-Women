@@ -30,8 +30,12 @@ Why: the M9 rule gate flagged Normal 27% vs 15% for the other categories and FOL
   Colab: notebook `05_context_features.ipynb` (CPU, ~20-40 min). Findings on the 12 samples: median walking speed 1.0-1.5 m/s (the metric scale looks right); reach and
   contact were real (Kidnapping_v41: a man grabs a woman; Assassination_v2: the grab); every first "flee" detection was a cropped-box artifact and is now suppressed
   (speed-based features use only upright, uncropped people).
-- Stage B (scene segmentation + Depth Anything), Stage C (interaction graph, narrative, video upgrade), Stage D (window-level learning, style-confound probe, MIL, metrics),
-  annotation benchmark: NOT started. **Decision gate after Stage A on the full set**: do follow / approach-from-behind / looking-back / mutual-facing separate the buildup
+- **Stage A run on Colab (793 clips, 39 min, 0 failed)**: moving camera in 36% of clips (Assassination 57%, Chain 43%, Harassment 44%, Kidnapping 49%, Stalking 46% vs Normal 21%: a STYLE SHORTCUT);
+  median moving speed 0.78 m/s (p90 2.3). Share of clips with each behavior (Normal vs all other categories pooled): approach-from-behind 19% vs 13%, contact 28% vs 29%, reach 15% vs 19%,
+  mutual facing 11% vs 2%, follow 1% vs 1%, looking back 4% vs 2%. Individual detections checked by eye are plausible, but NO single behavior separates the categories from Normal.
+- **Stage D BUILT locally (126 tests), not yet run on Colab**: `windows.py`, `learn.py`, notebook `06_learn_and_evaluate.ipynb` (window features, grouped CV, style-only shortcut probe,
+  static-camera AUC, per-category AUC, importance, comparison with the M9 rule gate).
+- Stage B (scene segmentation + Depth Anything), Stage C (interaction graph, narrative, video upgrade), annotation benchmark: NOT started. **Decision gate after Stage A on the full set**: do follow / approach-from-behind / looking-back / mutual-facing separate the buildup
   categories from Normal? Run notebook 05 and look at the table.
 
 ## What was found on the full set (Colab, 2026-10-03)

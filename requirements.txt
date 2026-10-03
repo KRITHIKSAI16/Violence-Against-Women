@@ -1,6 +1,9 @@
-opencv-python
-pyyaml
-pytest
-ultralytics
 lapx
+matplotlib
 numpy
+opencv-python
+pandas
+pytest
+pyyaml
+scikit-learn
+ultralytics

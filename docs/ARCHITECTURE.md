@@ -150,3 +150,13 @@ Rules that came from looking at frames: speed-derived features (speed, flee, fol
 edge or a person leaning over a table gives a wrong depth and fake 4-9 m/s speeds. Reach and contact were checked by eye on two clips. The metric scale was checked
 (median moving speed 1.0-1.5 m/s). Assumptions (FOV, person height) are stored in every scene json. Stages B-E (scene segmentation, Depth Anything, interaction graph + narrative,
 learned window scorer with a style-confound probe, annotation benchmark) follow; see STATE.md.
+
+### 10.1 Stage D: what separates buildup clips from Normal? (`windows.py`, `learn.py`)
+Window table (report M4): one row per pair per 3 s window (step 1.5 s), symmetric features in three groups: **behavior** (distance, proxemic zones, closing, speeds, stillness,
+following, approach-from-behind, looking back, mutual facing, facing away, contact, reach, fleeing, pair age), **scene** (people count, isolation) and **style** (how the clip was
+filmed: camera moving, brightness, sharpness, duration, original resolution and fps). Label = the clip's folder (Normal 0, else 1); for categories with an act only windows before the
+video cut point are used. Learner (M6/M7): gradient boosting and logistic regression, StratifiedGroupKFold **by clip**, every clip weighted equally, clip score = mean of the top-3 window
+scores (multiple-instance learning). Reported: AUC and accuracy / precision / recall / F1 for `style_only`, `behavior`, `behavior+scene`, `all`, plus the M9 rule gate; AUC on static-camera clips
+only; AUC of each category vs Normal; permutation importance. The **style_only vs behavior comparison is the shortcut probe**: on the full set the buildup categories were filmed with a moving
+camera far more often than Normal (45% vs 21% of clips), so a model could "detect violence" by detecting hand-held footage. Tests prove the probe works (identical behavior but different
+filming => style AUC ~1, behavior AUC ~0.5). The F1 threshold is chosen on the same out-of-fold scores (optimistic, stated in the output).

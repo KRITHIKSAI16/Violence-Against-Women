@@ -11,3 +11,9 @@ data/processed/
 models/*.pt
 data/tracks/
 data/previews/
+# generated outputs (rebuild with the scripts; on Colab they live in Drive)
+data/scores/
+data/gate/
+data/report/
+data/context/
+data/learn/
