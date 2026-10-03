@@ -181,3 +181,8 @@ def test_parse_overrides():
     assert parse_overrides(["follow_min_s=3", "x=abc"]) == {"follow_min_s": 3.0, "x": "abc"}
     with pytest.raises(ValueError):
         parse_overrides(["nokey"])
+
+
+def test_gate_records_thresholds_used():
+    g, _ = run({1: lambda t: (200 + 80 * t, 500), 2: lambda t: (400 + 80 * t, 500)}, 8)
+    assert g["params"]["follow_min_s"] == CFG["follow_min_s"] and "burst_abs" in g["params"]

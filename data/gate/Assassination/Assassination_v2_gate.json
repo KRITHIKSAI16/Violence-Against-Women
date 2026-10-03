@@ -71,6 +71,37 @@
    "peak_rel_speed": 6.34
   }
  ],
+ "params": {
+  "smooth_s": 0.5,
+  "vel_s": 0.5,
+  "gap_fill_s": 0.2,
+  "gap_s": 0.5,
+  "min_cotracked_s": 1.0,
+  "move_speed": 0.25,
+  "still_speed": 0.15,
+  "approach_closing": 0.3,
+  "approach_max_d": 6.0,
+  "approach_min_s": 1.0,
+  "approach_min_drop": 0.8,
+  "follow_max_d": 3.0,
+  "follow_cos": 0.5,
+  "follow_behind": 0.5,
+  "follow_min_s": 4.0,
+  "hover_max_d": 1.5,
+  "hover_min_s": 3.0,
+  "corner_max_d": 2.0,
+  "corner_blocked_speed": 0.3,
+  "corner_min_s": 1.5,
+  "corner_activity_s": 3.0,
+  "burst_abs": 2.5,
+  "burst_mad_k": 4.0,
+  "burst_max_d": 2.5,
+  "burst_min_s": 0.2,
+  "burst_smooth_s": 0.15,
+  "burst_vel_s": 0.2,
+  "kpt_conf": 0.5,
+  "corridor": 1.0
+ },
  "max_people": 4,
  "isolated_frac": 0.529
 }

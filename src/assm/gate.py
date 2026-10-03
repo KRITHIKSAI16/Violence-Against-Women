@@ -324,6 +324,7 @@ def analyze_clip(t, cfg, clip_id="", category=""):
         "escalation": esc,
         "proposals": proposals,
         "segments": sorted(all_segs, key=lambda s: (s["start_f"], RANK[s["state"]])),
+        "params": {k: v for k, v in cfg.items() if isinstance(v, (int, float)) and not isinstance(v, bool)},
         "max_people": int(people.max()) if n else 0,
         "isolated_frac": round(float((people[people > 0] == 2).mean()), 3) if (people > 0).any() else 0.0,
     }
@@ -405,7 +406,12 @@ def main():
                     help="override gate thresholds for this run, e.g. --set follow_min_s=3 hover_max_d=2")
     args = ap.parse_args()
     cfg = load_config(args.config)
-    cfg["gate"] = {**cfg["gate"], **parse_overrides(args.set)}
+    over = parse_overrides(args.set)
+    cfg["gate"] = {**cfg["gate"], **over}
+    if over:
+        print(f"NOTE: thresholds overridden for this run: {over}")
+        print(f"      outputs in {cfg['gate']['gate_dir']} now use them (recorded in each *_gate.json under 'params').")
+        print("      Run again without --set to restore the config defaults.\n")
     clean = json.loads(resolve_path(cfg["preprocess"]["clean_manifest_path"]).read_text("utf-8"))
     gates = run(clean, cfg["assm"], cfg["gate"], set(args.clips) if args.clips else None)
     print(f"Analyzed {len(gates)} clips -> {resolve_path(cfg['gate']['gate_dir'])}\n")

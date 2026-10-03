@@ -18,23 +18,6 @@
   "ends_in_escalation": true
  },
  {
-  "clip_id": "Chain_Snatching_v2",
-  "category": "Chain_Snatching",
-  "fps": 30.0,
-  "start_f": 237,
-  "end_f": 284,
-  "start_s": 7.9,
-  "end_s": 9.5,
-  "pair": [
-   1,
-   3
-  ],
-  "reasons": [
-   "HOVER"
-  ],
-  "ends_in_escalation": false
- },
- {
   "clip_id": "Kidnapping_v28",
   "category": "Kidnapping",
   "fps": 30.0,
@@ -48,41 +31,6 @@
   ],
   "reasons": [
    "CORNER"
-  ],
-  "ends_in_escalation": false
- },
- {
-  "clip_id": "Kidnapping_v41",
-  "category": "Kidnapping",
-  "fps": 30.0,
-  "start_f": 56,
-  "end_f": 114,
-  "start_s": 1.867,
-  "end_s": 3.833,
-  "pair": [
-   1,
-   3
-  ],
-  "reasons": [
-   "APPROACH",
-   "HOVER"
-  ],
-  "ends_in_escalation": false
- },
- {
-  "clip_id": "Normal_v6",
-  "category": "Normal",
-  "fps": 30.0,
-  "start_f": 182,
-  "end_f": 240,
-  "start_s": 6.067,
-  "end_s": 8.033,
-  "pair": [
-   1,
-   6
-  ],
-  "reasons": [
-   "HOVER"
   ],
   "ends_in_escalation": false
  },
@@ -118,58 +66,6 @@
   ],
   "reasons": [
    "APPROACH",
-   "HOVER"
-  ],
-  "ends_in_escalation": false
- },
- {
-  "clip_id": "Normal_v6",
-  "category": "Normal",
-  "fps": 30.0,
-  "start_f": 227,
-  "end_f": 342,
-  "start_s": 7.567,
-  "end_s": 11.433,
-  "pair": [
-   2,
-   4
-  ],
-  "reasons": [
-   "APPROACH",
-   "HOVER"
-  ],
-  "ends_in_escalation": false
- },
- {
-  "clip_id": "Normal_v6",
-  "category": "Normal",
-  "fps": 30.0,
-  "start_f": 239,
-  "end_f": 298,
-  "start_s": 7.967,
-  "end_s": 9.967,
-  "pair": [
-   1,
-   4
-  ],
-  "reasons": [
-   "HOVER"
-  ],
-  "ends_in_escalation": false
- },
- {
-  "clip_id": "Stalking_v3",
-  "category": "Stalking",
-  "fps": 30.0,
-  "start_f": 418,
-  "end_f": 463,
-  "start_s": 13.933,
-  "end_s": 15.467,
-  "pair": [
-   1,
-   3
-  ],
-  "reasons": [
    "HOVER"
   ],
   "ends_in_escalation": false

@@ -1,0 +1,82 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Pre-violence buildup report</title><style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:0;padding:24px;background:#f6f6f4;color:#222}
+h1{margin:0 0 4px}h2{margin-top:36px;border-bottom:2px solid #ddd;padding-bottom:4px}
+table{border-collapse:collapse;background:#fff;font-size:14px}th,td{border:1px solid #ddd;padding:6px 10px;text-align:right}
+th:first-child,td:first-child{text-align:left}.note{background:#fff8e1;border:1px solid #f0d98a;padding:12px 16px;max-width:900px;
+line-height:1.5}.grid{display:flex;flex-wrap:wrap;gap:16px}.card{background:#fff;border:1px solid #ddd;padding:8px;width:440px}
+.card img{width:100%}.tag{font-size:12px;padding:1px 6px;border-radius:8px;background:#e8e8e8}.top{background:#ffe0b2}
+.claim{font-size:13px;color:#444;margin:4px 0}video{width:100%;margin-top:6px}small{color:#666}</style></head><body>
+<h1>Pre-violence buildup: what happens before the act</h1>
+<small>12 clips, behaviors detected from person tracks (M8a) by the M9 gate. Violent footage is not shown: each video stops before the detected escalation.</small>
+<h2>How to read this</h2><div class='note'><b>APPROACH</b> distance shrinking &middot; <b>FOLLOW</b> one person trails another, close, same heading &middot; <b>HOVER</b> lingering next to someone standing still &middot; <b>CORNER</b> one person stands between another and the nearest frame edge (the stand-in for an exit) &middot; <b>ESCALATION</b> sudden relative-speed burst while close. A clip is <i>flagged</i> when FOLLOW, HOVER or CORNER occurs, or an APPROACH ends in ESCALATION. <b>Ordered</b> = the behaviors started in escalating order (approach, then follow/hover, then corner).<br><br><b>Limits.</b> Everything comes from 2D positions of detected people: small or distant people are missed (see <i>no pair</i>), a false box (a chair, a scooter) can create a false behavior, hand-held cameras blur the motion signals, and the act's start was never annotated, so the video cut is a heuristic. <b>Normal</b> is the false-alarm baseline: compare every category with it. Rates are tuned on this same data; the review sheet is the independent check.</div>
+<h2>Categories</h2><table><tr><th>category</th><th>clips</th><th>no pair</th><th>flagged</th><th>FOLLOW</th><th>HOVER</th><th>CORNER</th><th>ESCALATION</th><th>ordered</th><th>median buildup (s)</th><th>median start-to-escalation (s)</th></tr>
+<tr><td>Assassination</td><td>2</td><td>50%</td><td>50%</td><td>0%</td><td>0%</td><td>0%</td><td>50%</td><td>50%</td><td>2.0</td><td>2.0</td></tr>
+<tr><td>Chain_Snatching</td><td>2</td><td>0%</td><td>0%</td><td>0%</td><td>0%</td><td>0%</td><td>0%</td><td>0%</td><td>-</td><td>-</td></tr>
+<tr><td>Harassment</td><td>2</td><td>0%</td><td>0%</td><td>0%</td><td>0%</td><td>0%</td><td>0%</td><td>0%</td><td>-</td><td>-</td></tr>
+<tr><td>Kidnapping</td><td>2</td><td>0%</td><td>50%</td><td>0%</td><td>0%</td><td>50%</td><td>50%</td><td>50%</td><td>1.6</td><td>1.6</td></tr>
+<tr><td>Normal</td><td>2</td><td>0%</td><td>50%</td><td>0%</td><td>50%</td><td>0%</td><td>0%</td><td>50%</td><td>7.1</td><td>-</td></tr>
+<tr><td>Stalking</td><td>2</td><td>50%</td><td>0%</td><td>0%</td><td>0%</td><td>0%</td><td>0%</td><td>0%</td><td>-</td><td>-</td></tr>
+</table>
+<details><summary><small>Thresholds used (body heights = bh, seconds = s)</small></summary><small>approach_closing=0.3, approach_max_d=6.0, approach_min_drop=0.8, approach_min_s=1.0, burst_abs=2.5, burst_mad_k=4.0, burst_max_d=2.5, burst_min_s=0.2, burst_smooth_s=0.15, burst_vel_s=0.2, corner_activity_s=3.0, corner_blocked_speed=0.3, corner_max_d=2.0, corner_min_s=1.5, corridor=1.0, follow_behind=0.5, follow_cos=0.5, follow_max_d=3.0, follow_min_s=4.0, gap_fill_s=0.2, gap_s=0.5, hover_max_d=1.5, hover_min_s=3.0, kpt_conf=0.5, min_cotracked_s=1.0, move_speed=0.25, smooth_s=0.5, still_speed=0.15, vel_s=0.5</small></details>
+<h2>Assassination</h2><div class='grid'>
+<div class='card'>
+<a href='storyboards/Assassination/Assassination_v2_storyboard.jpg'><img loading='lazy' src='storyboards/Assassination/Assassination_v2_storyboard.jpg'></a>
+<b>Assassination_v2</b> <span class='tag top'>top</span> <span class='tag'>flagged</span><div class='claim'>id6 APPROACHING id2 3.6-5.3s; burst at 5.6s</div>
+<video controls preload='none' src='videos/Assassination/Assassination_v2_buildup.mp4'></video>
+</div>
+<div class='card'>
+<a href='storyboards/Assassination/Assassination_v1_storyboard.jpg'><img loading='lazy' src='storyboards/Assassination/Assassination_v1_storyboard.jpg'></a>
+<b>Assassination_v1</b> <span class='tag '>random</span> <span class='tag'>not flagged</span><div class='claim'>no sustained buildup behavior detected</div>
+<video controls preload='none' src='videos/Assassination/Assassination_v1_buildup.mp4'></video>
+</div>
+</div>
+<h2>Chain_Snatching</h2><div class='grid'>
+<div class='card'>
+<a href='storyboards/Chain_Snatching/Chain_Snatching_v1_storyboard.jpg'><img loading='lazy' src='storyboards/Chain_Snatching/Chain_Snatching_v1_storyboard.jpg'></a>
+<b>Chain_Snatching_v1</b> <span class='tag '>random</span> <span class='tag'>not flagged</span><div class='claim'>no sustained buildup behavior detected</div>
+<video controls preload='none' src='videos/Chain_Snatching/Chain_Snatching_v1_buildup.mp4'></video>
+</div>
+</div>
+<h2>Harassment</h2><div class='grid'>
+<div class='card'>
+<a href='storyboards/Harassment/Harassment_v5_storyboard.jpg'><img loading='lazy' src='storyboards/Harassment/Harassment_v5_storyboard.jpg'></a>
+<b>Harassment_v5</b> <span class='tag top'>top</span> <span class='tag'>not flagged</span><div class='claim'>id2 APPROACHING id1 3.7-5.4s</div>
+<video controls preload='none' src='videos/Harassment/Harassment_v5_buildup.mp4'></video>
+</div>
+<div class='card'>
+<a href='storyboards/Harassment/Harassment_v3_storyboard.jpg'><img loading='lazy' src='storyboards/Harassment/Harassment_v3_storyboard.jpg'></a>
+<b>Harassment_v3</b> <span class='tag '>random</span> <span class='tag'>not flagged</span><div class='claim'>no sustained buildup behavior detected</div>
+<video controls preload='none' src='videos/Harassment/Harassment_v3_buildup.mp4'></video>
+</div>
+</div>
+<h2>Kidnapping</h2><div class='grid'>
+<div class='card'>
+<a href='storyboards/Kidnapping/Kidnapping_v28_storyboard.jpg'><img loading='lazy' src='storyboards/Kidnapping/Kidnapping_v28_storyboard.jpg'></a>
+<b>Kidnapping_v28</b> <span class='tag top'>top</span> <span class='tag'>flagged</span><div class='claim'>id4 BLOCKING id5&#x27;s way out 2.2-3.8s; burst at 3.9s</div>
+<video controls preload='none' src='videos/Kidnapping/Kidnapping_v28_buildup.mp4'></video>
+</div>
+<div class='card'>
+<a href='storyboards/Kidnapping/Kidnapping_v41_storyboard.jpg'><img loading='lazy' src='storyboards/Kidnapping/Kidnapping_v41_storyboard.jpg'></a>
+<b>Kidnapping_v41</b> <span class='tag top'>top</span> <span class='tag'>not flagged</span><div class='claim'>id3 APPROACHING id1 1.9-3.8s</div>
+<video controls preload='none' src='videos/Kidnapping/Kidnapping_v41_buildup.mp4'></video>
+</div>
+</div>
+<h2>Normal (false-alarm baseline)</h2><div class='grid'>
+<div class='card'>
+<a href='storyboards/Normal/Normal_v6_storyboard.jpg'><img loading='lazy' src='storyboards/Normal/Normal_v6_storyboard.jpg'></a>
+<b>Normal_v6</b> <span class='tag top'>top</span> <span class='tag'>flagged</span><div class='claim'>id2 APPROACHING id6 6.2-7.4s; id2 HOVERING near id6 8.1-13.3s</div>
+<video controls preload='none' src='videos/Normal/Normal_v6_buildup.mp4'></video>
+</div>
+<div class='card'>
+<a href='storyboards/Normal/Normal_v1_storyboard.jpg'><img loading='lazy' src='storyboards/Normal/Normal_v1_storyboard.jpg'></a>
+<b>Normal_v1</b> <span class='tag '>random</span> <span class='tag'>not flagged</span><div class='claim'>no sustained buildup behavior detected</div>
+<video controls preload='none' src='videos/Normal/Normal_v1_buildup.mp4'></video>
+</div>
+</div>
+<h2>Stalking</h2><div class='grid'>
+<div class='card'>
+<a href='storyboards/Stalking/Stalking_v3_storyboard.jpg'><img loading='lazy' src='storyboards/Stalking/Stalking_v3_storyboard.jpg'></a>
+<b>Stalking_v3</b> <span class='tag '>random</span> <span class='tag'>not flagged</span><div class='claim'>no sustained buildup behavior detected</div>
+<video controls preload='none' src='videos/Stalking/Stalking_v3_buildup.mp4'></video>
+</div>
+</div>
+</body></html>

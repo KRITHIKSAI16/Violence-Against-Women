@@ -1,0 +1,6 @@
+clip_id,category,group,system_claim,video,verdict (correct / partly / wrong / missed),notes
+Assassination_v2,Assassination,flagged,id6 APPROACHING id2 3.6-5.3s; burst at 5.6s,videos/Assassination/Assassination_v2_buildup.mp4,,
+Kidnapping_v28,Kidnapping,flagged,id4 BLOCKING id5's way out 2.2-3.8s; burst at 3.9s,videos/Kidnapping/Kidnapping_v28_buildup.mp4,,
+Normal_v6,Normal,flagged,id2 APPROACHING id6 6.2-7.4s; id2 HOVERING near id6 8.1-13.3s,videos/Normal/Normal_v6_buildup.mp4,,
+Kidnapping_v41,Kidnapping,unflagged,id3 APPROACHING id1 1.9-3.8s,videos/Kidnapping/Kidnapping_v41_buildup.mp4,,
+Chain_Snatching_v1,Chain_Snatching,unflagged,no sustained buildup behavior detected,videos/Chain_Snatching/Chain_Snatching_v1_buildup.mp4,,

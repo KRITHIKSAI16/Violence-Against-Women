@@ -1,0 +1,7 @@
+category,clips,no_pair,flagged,FOLLOW,HOVER,CORNER,ESCALATION,ordered,median_buildup_s,median_time_to_escalation_s,median_clip_s
+Assassination,2,0.5,0.5,0.0,0.0,0.0,0.5,0.5,1.967,1.967,7.583
+Chain_Snatching,2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,nan,nan,10.7835
+Harassment,2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,nan,nan,9.683
+Kidnapping,2,0.0,0.5,0.0,0.0,0.5,0.5,0.5,1.6,1.634,11.267
+Normal,2,0.0,0.5,0.0,0.5,0.0,0.0,0.5,7.1000000000000005,nan,9.4
+Stalking,2,0.5,0.0,0.0,0.0,0.0,0.0,0.0,nan,nan,17.2335
