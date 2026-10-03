@@ -125,3 +125,37 @@ learn:
   topk: 3                    # clip score = mean of its top-k window scores (multiple-instance learning)
   folds: 5
   seed: 7
+
+# Stage C: scene graph episodes and the buildup story (src/context/graph.py, narrative.py)
+story:
+  story_pairs: 2                # pairs narrated per clip (the ones with the most evidence)
+  approach_toward_ms: 0.3       # an approach: mover's speed toward the other (m/s) ...
+  approach_closing_ms: 0.3      # ... and the separation closing at least this fast
+  approach_min_s: 1.0
+  hover_dist_m: 1.2             # lingering: within this distance of a person who stands still
+  hover_min_s: 3.0
+  very_close_min_s: 1.5         # within arm's reach (Hall intimate zone) for this long
+  mutual_min_s: 2.0
+  block_dist_m: 3.0             # blocking an exit counts only when the two are within this distance
+  block_min_s: 1.0
+  pinned_dist_m: 1.5            # pinned against an obstacle counts only while the other person is this close
+  reach_ms: 1.5                 # hand speed toward the other person's torso (m/s)
+  reaction_before_s: 2.0        # target speed is compared before / after an approach starts
+  reaction_after_s: 3.0
+  # Untuned defaults. Positive = concern cue, negative = benign cue. Calibrate with the annotated benchmark before trusting any total.
+  cue_weights:
+    approaches_from_behind: 1.0
+    approaches_side: 0.4
+    approaches_frontal: 0.3
+    follows: 2.0
+    looks_back: 1.5
+    hovers_near: 0.7
+    very_close: 0.3
+    blocks_exit: 2.0
+    pinned_against: 1.5
+    reaches_for: 2.0
+    contact: 2.0
+    flees_from: 1.5
+    target_stops: 0.7
+    target_speeds_up: 1.0
+    mutual_facing: -1.5
