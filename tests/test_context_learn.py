@@ -144,3 +144,18 @@ def test_probe_exposes_a_pure_style_shortcut(tmp_path):
 def test_static_camera_subset_is_reported_and_feature_sets_are_disjoint_groups():
     assert not set(BEHAVIOR) & set(STYLE) and not set(SCENE) & set(STYLE)
     assert FEATURE_SETS["all"] == BEHAVIOR + SCENE + STYLE
+
+
+def test_max_pairs_keeps_the_closest_pairs(tmp_path):
+    from src.context.features import save_context
+    rng = np.random.default_rng(5)
+    # a crowd of 5 people standing at different distances from person 1
+    t = world({k: (lambda t, k=k: (100 + 90 * k, 150)) for k in range(1, 6)}, n=240)
+    sc, arr = analyze_context(t, {**CTX, "max_pair_dist_m": 50.0})
+    assert len(arr) == 10
+    save_context(sc, arr, tmp_path, "Normal", "crowd")
+    clean = {"clips": [{"clip_id": "crowd", "category": "Normal", "path": "x", "fps": FPS, "width": 640, "height": 480}]}
+    w_all, _ = build_tables(clean, {}, tmp_path, tmp_path / "g", CTX, CFG["report"], 3.0, 1.5)
+    w_cap, _ = build_tables(clean, {}, tmp_path, tmp_path / "g", CTX, CFG["report"], 3.0, 1.5, max_pairs=3)
+    assert w_all["pair"].nunique() == 10 and w_cap["pair"].nunique() == 3
+    assert w_cap["d_mean"].max() <= w_all["d_mean"].quantile(0.5) + 1e-6          # the kept pairs are the close ones

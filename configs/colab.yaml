@@ -119,6 +119,7 @@ learn:
   learn_dir: /content/drive/MyDrive/VAW_results/learn
   window_s: 3.0
   step_s: 1.5
+  max_pairs_per_clip: 25     # crowded scenes: keep the 25 closest pairs per clip (speed, and the rest are bystanders)
   topk: 3                    # clip score = mean of its top-k window scores (multiple-instance learning)
   folds: 5
   seed: 7

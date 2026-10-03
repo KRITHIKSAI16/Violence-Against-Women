@@ -58,10 +58,12 @@ def clip_end_frame(clip, scene, gate_dir, rep):
     return cut["cut_f"] if cut["trimmed"] else scene["n_frames"], cut
 
 
-def build_tables(clean, raw_by_id, ctx_dir, gate_dir, ctx, rep, win_s, step_s):
+def build_tables(clean, raw_by_id, ctx_dir, gate_dir, ctx, rep, win_s, step_s, max_pairs=None, progress=False):
     """-> (windows DataFrame, clips DataFrame). One clip row per clip with context results (also those without pairs)."""
     wrows, crows = [], []
-    for c in clean["clips"]:
+    for k, c in enumerate(clean["clips"], 1):
+        if progress and k % 100 == 0:
+            print(f"  windows: {k}/{len(clean['clips'])} clips, {len(wrows)} windows so far", flush=True)
         sp = Path(ctx_dir) / c["category"] / f"{c['clip_id']}_scene.json"
         if not sp.exists():
             continue
@@ -70,7 +72,11 @@ def build_tables(clean, raw_by_id, ctx_dir, gate_dir, ctx, rep, win_s, step_s):
         style = style_features(scene, raw_by_id.get(c["clip_id"], {}))
         sc = scene_features(scene)
         n_w = 0
-        for (i, j), a in arrays.items():
+        items = list(arrays.items())
+        if max_pairs and len(items) > max_pairs:      # crowded scenes: keep the pairs that stay closest (typically the interacting ones)
+            items.sort(key=lambda kv: float(np.nanmedian(kv[1]["dist_m"])) if np.isfinite(kv[1]["dist_m"]).any() else np.inf)
+            items = items[:int(max_pairs)]
+        for (i, j), a in items:
             for r in pair_windows(a, scene, ctx, win_s, step_s, end):
                 r.update(sc)
                 r.update(style)
@@ -180,6 +186,7 @@ def run(windows, clips, cfg_learn, gate_dir=None, importance=True, kinds=("gb", 
     for kind in kinds:
         for name, cols in FEATURE_SETS.items():
             oof, imp = cross_validate(windows, cols, kind, folds, seed, importance=(importance and name == "behavior" and kind == "gb"))
+            print(f"  done: {kind}:{name}", flush=True)
             cs = clip_scores(windows, oof, clips, k)
             tables[f"{kind}:{name}"] = cs
             has = cs[cs["has_pair"]]
@@ -254,11 +261,12 @@ def main():
         print(f"Loaded cached tables ({len(windows)} windows); use --rebuild to recompute.")
     else:
         windows, clips = build_tables(clean, raw_by_id, resolve_path(cfg["context"]["context_dir"]), resolve_path(cfg["gate"]["gate_dir"]),
-                                      cfg["context"], cfg["report"], L["window_s"], L["step_s"])
+                                      cfg["context"], cfg["report"], L["window_s"], L["step_s"], L.get("max_pairs_per_clip"), progress=True)
         windows.to_csv(wp, index=False)
         clips.to_csv(cp, index=False)
     if windows.empty or clips["label"].nunique() < 2:
         raise SystemExit("Not enough data: need both Normal and non-Normal clips with usable pairs. Run src.context.features first.")
+    print(f"Window table ready ({len(windows)} windows). Running experiments (8 models, 5-fold) ...", flush=True)
     res, tables = run(windows, clips, L, resolve_path(cfg["gate"]["gate_dir"]), importance=not args.no_importance)
     (out / "results.json").write_text(json.dumps(res, indent=1, default=float), encoding="utf-8")
     tables["gb:behavior"].to_csv(out / "clip_scores_behavior.csv", index=False)
