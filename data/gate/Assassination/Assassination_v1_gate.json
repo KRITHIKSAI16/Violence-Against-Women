@@ -1,0 +1,20 @@
+{
+ "clip_id": "Assassination_v1",
+ "category": "Assassination",
+ "fps": 30.0,
+ "n_frames": 193,
+ "duration_s": 6.433,
+ "n_tracks": 0,
+ "n_pairs": 0,
+ "no_interaction": true,
+ "key_pair": null,
+ "flag": false,
+ "states_seen": [],
+ "ordered_progression": false,
+ "phase_sequence": [],
+ "escalation": null,
+ "proposals": [],
+ "segments": [],
+ "max_people": 0,
+ "isolated_frac": 0.0
+}

@@ -20,3 +20,17 @@ def resolve_path(p):
     """Resolve a config path against the repo root (absolute paths pass through)."""
     p = Path(p)
     return p if p.is_absolute() else REPO_ROOT / p
+
+
+def parse_overrides(pairs):
+    """Turn ["follow_min_s=3", "hover_max_d=2"] into {"follow_min_s": 3.0, "hover_max_d": 2.0}."""
+    out = {}
+    for item in pairs or []:
+        key, _, val = item.partition("=")
+        if not key or not _:
+            raise ValueError(f"override must look like key=value, got {item!r}")
+        try:
+            out[key.strip()] = float(val)
+        except ValueError:
+            out[key.strip()] = val.strip()
+    return out

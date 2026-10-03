@@ -1,0 +1,20 @@
+{
+ "clip_id": "Chain_Snatching_v2",
+ "category": "Chain_Snatching",
+ "fps": 30.0,
+ "n_frames": 408,
+ "duration_s": 13.6,
+ "n_tracks": 3,
+ "n_pairs": 2,
+ "no_interaction": false,
+ "key_pair": null,
+ "flag": false,
+ "states_seen": [],
+ "ordered_progression": false,
+ "phase_sequence": [],
+ "escalation": null,
+ "proposals": [],
+ "segments": [],
+ "max_people": 2,
+ "isolated_frac": 0.557
+}

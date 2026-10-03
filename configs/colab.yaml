@@ -34,3 +34,34 @@ assm:
   corridor: 1.0          # j blocks i if within this many body heights of the i->exit line
   kpt_conf: 0.5          # keypoint confidence needed to count in the pose centroid
   scores_dir: /content/drive/MyDrive/VAW_results/scores     # M8b output
+
+# M9 Selective Activation: behavior states (units: body heights = bh, seconds = s)
+gate:
+  gate_dir: /content/drive/MyDrive/VAW_results/gate
+  smooth_s: 0.5              # trailing smoothing of positions
+  vel_s: 0.5                 # velocity / closing speed measured over this window
+  gap_fill_s: 0.2            # fill track dropouts up to this long before smoothing
+  gap_s: 0.5                 # bridge gaps up to this long inside a state (hysteresis)
+  min_cotracked_s: 1.0       # ignore pairs seen together for less than this
+  move_speed: 0.25           # bh/s: counts as "moving"
+  still_speed: 0.15          # bh/s: counts as "standing still"
+  approach_closing: 0.3      # bh/s distance must shrink at least this fast
+  approach_max_d: 6.0        # only count approach when closer than this (bh)
+  approach_min_s: 1.0
+  approach_min_drop: 0.8     # net distance reduction over the approach (bh)
+  follow_max_d: 3.0          # bh
+  follow_cos: 0.5            # heading alignment (cosine of velocity vectors)
+  follow_behind: 0.5         # trailing score: the other person moves away along the line between them
+  follow_min_s: 4.0
+  hover_max_d: 1.5
+  hover_min_s: 3.0
+  corner_max_d: 2.0
+  corner_blocked_speed: 0.3  # bh/s: the blocked person is slow/stopped
+  corner_min_s: 1.5
+  corner_activity_s: 3.0     # the blocker must have moved within this long before (not just standing there)
+  burst_abs: 2.5             # bh/s relative speed always counted as a burst
+  burst_mad_k: 4.0           # or this many robust deviations above the pair's own median
+  burst_max_d: 2.5
+  burst_min_s: 0.2
+  burst_smooth_s: 0.15       # bursts use a short smoothing/velocity window (they are brief)
+  burst_vel_s: 0.2

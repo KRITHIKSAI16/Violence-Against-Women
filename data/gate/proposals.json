@@ -1,0 +1,73 @@
+[
+ {
+  "clip_id": "Assassination_v2",
+  "category": "Assassination",
+  "fps": 30.0,
+  "start_f": 108,
+  "end_f": 167,
+  "start_s": 3.6,
+  "end_s": 5.567,
+  "pair": [
+   2,
+   6
+  ],
+  "reasons": [
+   "APPROACH",
+   "ESCALATION"
+  ],
+  "ends_in_escalation": true
+ },
+ {
+  "clip_id": "Kidnapping_v28",
+  "category": "Kidnapping",
+  "fps": 30.0,
+  "start_f": 67,
+  "end_f": 114,
+  "start_s": 2.233,
+  "end_s": 3.833,
+  "pair": [
+   4,
+   5
+  ],
+  "reasons": [
+   "CORNER"
+  ],
+  "ends_in_escalation": false
+ },
+ {
+  "clip_id": "Normal_v6",
+  "category": "Normal",
+  "fps": 30.0,
+  "start_f": 186,
+  "end_f": 379,
+  "start_s": 6.2,
+  "end_s": 12.667,
+  "pair": [
+   1,
+   2
+  ],
+  "reasons": [
+   "APPROACH",
+   "HOVER"
+  ],
+  "ends_in_escalation": false
+ },
+ {
+  "clip_id": "Normal_v6",
+  "category": "Normal",
+  "fps": 30.0,
+  "start_f": 187,
+  "end_f": 399,
+  "start_s": 6.233,
+  "end_s": 13.333,
+  "pair": [
+   2,
+   6
+  ],
+  "reasons": [
+   "APPROACH",
+   "HOVER"
+  ],
+  "ends_in_escalation": false
+ }
+]

@@ -1,0 +1,20 @@
+{
+ "clip_id": "Stalking_v3",
+ "category": "Stalking",
+ "fps": 30.0,
+ "n_frames": 642,
+ "duration_s": 21.4,
+ "n_tracks": 4,
+ "n_pairs": 1,
+ "no_interaction": false,
+ "key_pair": null,
+ "flag": false,
+ "states_seen": [],
+ "ordered_progression": false,
+ "phase_sequence": [],
+ "escalation": null,
+ "proposals": [],
+ "segments": [],
+ "max_people": 3,
+ "isolated_frac": 0.268
+}

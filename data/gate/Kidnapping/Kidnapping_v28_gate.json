@@ -1,0 +1,79 @@
+{
+ "clip_id": "Kidnapping_v28",
+ "category": "Kidnapping",
+ "fps": 30.0,
+ "n_frames": 317,
+ "duration_s": 10.567,
+ "n_tracks": 5,
+ "n_pairs": 3,
+ "no_interaction": false,
+ "key_pair": [
+  4,
+  5
+ ],
+ "flag": true,
+ "states_seen": [
+  "CORNER",
+  "ESCALATION"
+ ],
+ "ordered_progression": false,
+ "phase_sequence": [
+  "CORNER"
+ ],
+ "escalation": null,
+ "proposals": [
+  {
+   "start_f": 67,
+   "end_f": 114,
+   "start_s": 2.233,
+   "end_s": 3.833,
+   "pair": [
+    4,
+    5
+   ],
+   "reasons": [
+    "CORNER"
+   ],
+   "ends_in_escalation": false
+  }
+ ],
+ "segments": [
+  {
+   "state": "CORNER",
+   "id_i": 4,
+   "id_j": 5,
+   "start_f": 67,
+   "end_f": 114,
+   "start_s": 2.233,
+   "end_s": 3.833,
+   "dur_s": 1.6,
+   "actor": 4,
+   "target": 5,
+   "mean_d": 0.36
+  },
+  {
+   "state": "ESCALATION",
+   "id_i": 2,
+   "id_j": 4,
+   "start_f": 116,
+   "end_f": 123,
+   "start_s": 3.867,
+   "end_s": 4.133,
+   "dur_s": 0.267,
+   "peak_rel_speed": 5.52
+  },
+  {
+   "state": "ESCALATION",
+   "id_i": 2,
+   "id_j": 5,
+   "start_f": 117,
+   "end_f": 123,
+   "start_s": 3.9,
+   "end_s": 4.133,
+   "dur_s": 0.233,
+   "peak_rel_speed": 5.48
+  }
+ ],
+ "max_people": 4,
+ "isolated_frac": 0.531
+}

@@ -1,0 +1,123 @@
+{
+ "clip_id": "Normal_v6",
+ "category": "Normal",
+ "fps": 30.0,
+ "n_frames": 413,
+ "duration_s": 13.767,
+ "n_tracks": 4,
+ "n_pairs": 6,
+ "no_interaction": false,
+ "key_pair": [
+  2,
+  6
+ ],
+ "flag": true,
+ "states_seen": [
+  "APPROACH",
+  "HOVER"
+ ],
+ "ordered_progression": true,
+ "phase_sequence": [
+  "APPROACH",
+  "HOVER"
+ ],
+ "escalation": null,
+ "proposals": [
+  {
+   "start_f": 186,
+   "end_f": 379,
+   "start_s": 6.2,
+   "end_s": 12.667,
+   "pair": [
+    1,
+    2
+   ],
+   "reasons": [
+    "APPROACH",
+    "HOVER"
+   ],
+   "ends_in_escalation": false
+  },
+  {
+   "start_f": 187,
+   "end_f": 399,
+   "start_s": 6.233,
+   "end_s": 13.333,
+   "pair": [
+    2,
+    6
+   ],
+   "reasons": [
+    "APPROACH",
+    "HOVER"
+   ],
+   "ends_in_escalation": false
+  }
+ ],
+ "segments": [
+  {
+   "state": "APPROACH",
+   "id_i": 1,
+   "id_j": 2,
+   "start_f": 186,
+   "end_f": 223,
+   "start_s": 6.2,
+   "end_s": 7.467,
+   "dur_s": 1.267,
+   "actor": 2,
+   "drop_bh": 2.68
+  },
+  {
+   "state": "APPROACH",
+   "id_i": 2,
+   "id_j": 6,
+   "start_f": 187,
+   "end_f": 221,
+   "start_s": 6.233,
+   "end_s": 7.4,
+   "dur_s": 1.167,
+   "actor": 2,
+   "drop_bh": 1.08
+  },
+  {
+   "state": "APPROACH",
+   "id_i": 2,
+   "id_j": 4,
+   "start_f": 243,
+   "end_f": 306,
+   "start_s": 8.1,
+   "end_s": 10.233,
+   "dur_s": 2.133,
+   "actor": 2,
+   "drop_bh": 1.33
+  },
+  {
+   "state": "HOVER",
+   "id_i": 2,
+   "id_j": 6,
+   "start_f": 243,
+   "end_f": 399,
+   "start_s": 8.1,
+   "end_s": 13.333,
+   "dur_s": 5.233,
+   "actor": 2,
+   "target": 6,
+   "mean_d": 1.1
+  },
+  {
+   "state": "HOVER",
+   "id_i": 1,
+   "id_j": 2,
+   "start_f": 256,
+   "end_f": 379,
+   "start_s": 8.533,
+   "end_s": 12.667,
+   "dur_s": 4.133,
+   "actor": 2,
+   "target": 1,
+   "mean_d": 0.96
+  }
+ ],
+ "max_people": 4,
+ "isolated_frac": 0.315
+}
