@@ -187,6 +187,7 @@ def main():
     ap.add_argument("--config", default=None)
     ap.add_argument("--configs", nargs="*", default=None, help="names from perception.configs (default: all)")
     ap.add_argument("--clips", nargs="*", default=None)
+    ap.add_argument("--sample", type=int, default=0, help="use N clips per category (evenly spaced, held-out clips excluded): for the full Drive set")
     ap.add_argument("--max-s", type=float, default=None)
     ap.add_argument("--sheet", action="store_true", help="comparison contact sheets for the first few clips")
     ap.add_argument("--force", action="store_true")
@@ -195,6 +196,13 @@ def main():
     pc = cfg["perception"]
     clean = json.loads(resolve_path(cfg["preprocess"]["clean_manifest_path"]).read_text("utf-8"))
     clips = [c for c in clean["clips"] if not args.clips or c["clip_id"] in args.clips]
+    if args.sample:
+        hold = {l.strip() for l in resolve_path(pc["holdout_file"]).read_text("utf-8").splitlines() if l.strip() and not l.startswith("#")}
+        by_cat = defaultdict(list)
+        for c in sorted(clips, key=lambda c: c["clip_id"]):
+            if c["clip_id"] not in hold:
+                by_cat[c["category"]].append(c)
+        clips = [cs[int(i)] for cs in by_cat.values() for i in np.linspace(0, len(cs) - 1, min(args.sample, len(cs)))]
     confs = [c for c in pc["configs"] if not args.configs or c["name"] in args.configs]
     max_s = args.max_s or float(pc["max_s"])
     out_dir = resolve_path(pc["shootout_dir"])
