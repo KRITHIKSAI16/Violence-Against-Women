@@ -29,6 +29,7 @@ import numpy as np
 from src.assm.track_poses import load_tracks
 from src.config import load_config, resolve_path
 from src.context.features import load_context, rank_pairs
+from src.video.shots import SHOT_BASE
 
 log = logging.getLogger(__name__)
 
@@ -211,9 +212,26 @@ def read_frames(video_path, frame_ids):
     return out
 
 
-def clip_layout(video_path, n_frames, models, camera_moving, n_keyframes=5):
-    """Majority-vote layout over evenly spaced keyframes -> (labels (128,128), facts dict)."""
-    ids = np.linspace(0, max(0, n_frames - 1), n_keyframes + 2)[1:-1].astype(int)
+def key_shot_range(t, scene, key_pair):
+    """(start_frame, end_frame) of the shot to analyse: the one containing the key pair, else the longest shot."""
+    n = scene["n_frames"]
+    starts = [int(x) for x in t["shot_starts"]] if "shot_starts" in t else [0]
+    ends = [x - 1 for x in starts[1:]] + [n - 1]
+    if key_pair:
+        shot = int(key_pair[0]) // SHOT_BASE
+        if shot < len(starts):
+            return starts[shot], ends[shot], shot
+    k = int(np.argmax([e - s for s, e in zip(starts, ends)]))
+    return starts[k], ends[k], k
+
+
+def clip_layout(video_path, frame_range, models, camera_moving, n_keyframes=5):
+    """Majority-vote layout over evenly spaced keyframes of ONE shot (frame_range = (first, last)) -> (labels (128,128), facts dict).
+
+    Keyframes are never taken from different shots: a layout merged across a cut would blend unrelated scenes.
+    """
+    a, b = frame_range
+    ids = np.linspace(a, max(a, b), n_keyframes + 2)[1:-1].astype(int)
     maps, confs, roads, grays = [], [], [], []
     for img in read_frames(video_path, ids).values():
         grays.append(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
@@ -313,17 +331,21 @@ def main():
         try:
             scene, _ = load_context(out_dir, c["category"], c["clip_id"])
             video = resolve_path(c["path"])
+            t = load_tracks(tp)
+            top = rank_pairs(scene, 1)
+            key = tuple(int(x) for x in top[0].split("_")) if top else None
+            first, last, shot = key_shot_range(t, scene, key)
             if want_layout:
-                labels, facts = clip_layout(video, scene["n_frames"], models, scene["camera"]["moving"], int(ctx["layout_keyframes"]))
+                labels, facts = clip_layout(video, (first, last), models, scene["camera"]["moving"], int(ctx["layout_keyframes"]))
+                facts["shot"] = {"index": int(shot), "start_f": int(first), "end_f": int(last)}
                 save_layout(out_dir, c["category"], c["clip_id"], labels, facts)
             else:
                 labels, facts = load_layout(out_dir, c["category"], c["clip_id"])
             place_counts[facts["place_type"]] = place_counts.get(facts["place_type"], 0) + 1
             if want_depth:
-                top = rank_pairs(scene, 1)
                 if top:
-                    i, j = (int(x) for x in top[0].split("_"))
-                    res = pair_depth_samples(load_tracks(tp), scene, (i, j), labels, video, models, int(ctx["depth_frames"]), scene["n_frames"])
+                    i, j = key
+                    res = pair_depth_samples(t, scene, (i, j), labels, video, models, int(ctx["depth_frames"]), scene["n_frames"])
                 else:
                     res = {"pair": None, "frames": [], "depth_agree_frac": None}
                 dp.write_text(json.dumps(res, indent=1), encoding="utf-8")

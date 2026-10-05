@@ -1,8 +1,12 @@
-"""M8a — ASSM step 1: person detection + pose + ByteTrack, cached per clip.
+"""M8a — ASSM step 1: person detection + pose + tracking, cached per clip, SHOT-AWARE.
 
-Runs YOLOv8n-pose with Ultralytics' built-in ByteTrack on each cleaned clip (M2 output)
-and saves what M8b (Algorithm 1 scoring) and Phase II need, so the slow model never has
-to run again when weights/thresholds change:
+Runs a YOLO pose model (config `assm.model`: yolov8n-pose, yolo26s/m/x-pose ...) with an Ultralytics tracker (config `assm.tracker`:
+ByteTrack or BoT-SORT with camera-motion compensation and optional ReID) on each cleaned clip (M2 output) and saves what M8b, the deep
+context layer and Phase II need, so the slow model never has to run again when settings change.
+
+Editing cuts: the clip is processed shot by shot (src/video/shots.py). The tracker restarts at every cut and track ids are made unique
+per shot (shot_index * 100000 + local id), so nothing is ever tracked, stitched or paired across a cut. Cached files from before this
+change contain no cuts and read as a single shot (all ids < 100000).
 
   data/tracks/<Category>/<clip_id>.npz
     frame_idx (N,)   int32    0-based frame number
@@ -12,6 +16,7 @@ to run again when weights/thresholds change:
     conf      (N,)   float32  detection confidence
     kpts      (N,17,3) float32  COCO keypoints x, y, keypoint-confidence
     fps, width, height, n_frames   clip metadata
+    shot_starts (S,) int32    first frame of every shot (a single 0 when the clip has no cuts)
 One row per (frame, tracked person). Frames with nobody tracked have no rows.
 
 Usage:  python -m src.assm.track_poses [--config CFG] [--limit N] [--force] [--preview-dir DIR]
@@ -26,6 +31,7 @@ import cv2
 import numpy as np
 
 from src.config import load_config, resolve_path
+from src.video.shots import SHOT_BASE, detect_shots, load_shots, save_shots, shot_of_id
 
 log = logging.getLogger(__name__)
 N_KPTS = 17
@@ -79,6 +85,8 @@ def stitch_tracks(t, max_gap=45, max_dist=1.5, size_ratio=1.7):
         a = info[tid]
         best, best_d = None, None
         for cid, ch in chains.items():
+            if shot_of_id(cid) != shot_of_id(tid):
+                continue                    # never join people across an editing cut
             gap = a["first"] - ch["last"]
             if not 0 < gap <= max_gap:
                 continue
@@ -103,29 +111,50 @@ def _device(setting):
     return 0 if torch.cuda.is_available() else "cpu"
 
 
-def track_clip(video_path, cfg, fps, width, height):
-    """Run pose + ByteTrack over one clip; return the packed arrays."""
+def _reset_tracker(model):
+    """Forget all track state (used at an editing cut): dropping the predictor makes the next call build a fresh tracker."""
+    model.predictor = None
+
+
+def track_clip(video_path, cfg, fps, width, height, shot_starts=None, max_frames=None):
+    """Run pose + tracking over one clip, shot by shot; return the packed arrays.
+
+    shot_starts: first frame of every shot (None = one shot). max_frames: stop early (used by the perception shootout).
+    """
     from ultralytics import YOLO
 
-    # A fresh model per clip resets ByteTrack state, so IDs never leak between clips.
     model = YOLO(str(resolve_path(cfg["model"])))
     tracker = resolve_path(cfg["tracker"])
     tracker = str(tracker) if tracker.exists() else cfg["tracker"]  # else an Ultralytics built-in name
-    rows, n_frames = [], 0
-    stream = model.track(source=str(video_path), stream=True, persist=True,
-                         tracker=tracker, conf=cfg["conf"], imgsz=cfg["imgsz"],
-                         device=_device(cfg["device"]), verbose=False)
-    for i, r in enumerate(stream):
-        n_frames = i + 1
-        if r.boxes is None or r.boxes.id is None or r.keypoints is None:
-            continue
-        ids = r.boxes.id.int().cpu().numpy()
-        xyxy = r.boxes.xyxy.cpu().numpy()
-        conf = r.boxes.conf.cpu().numpy()
-        kp = r.keypoints.data.cpu().numpy()  # (n,17,3)
-        for k in range(len(ids)):
-            rows.append((i, ids[k], xyxy[k], conf[k], kp[k]))
-    t = pack_tracks(rows, fps, width, height, n_frames)
+    device = _device(cfg["device"])
+    starts = sorted(set(int(x) for x in (shot_starts if shot_starts else [0])) | {0})
+    start_set = set(starts)
+    rows, shot, f = [], -1, 0
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        raise ValueError(f"cannot open video: {video_path}")
+    while True:
+        ok, frame = cap.read()
+        if not ok or (max_frames is not None and f >= max_frames):
+            break
+        if f in start_set:
+            shot += 1
+            if shot > 0:
+                _reset_tracker(model)       # a new scene: no identity, motion model or camera estimate may carry over
+        r = model.track(frame, persist=True, tracker=tracker, conf=cfg["conf"], imgsz=cfg["imgsz"], device=device, verbose=False)[0]
+        if r.boxes is not None and r.boxes.id is not None and r.keypoints is not None:
+            ids = r.boxes.id.int().cpu().numpy()
+            xyxy = r.boxes.xyxy.cpu().numpy()
+            conf = r.boxes.conf.cpu().numpy()
+            kp = r.keypoints.data.cpu().numpy()  # (n,17,3)
+            for k in range(len(ids)):
+                rows.append((f, shot * SHOT_BASE + int(ids[k]), xyxy[k], conf[k], kp[k]))
+        f += 1
+    cap.release()
+    if f == 0:
+        raise ValueError(f"no frame could be read from {video_path}")
+    t = pack_tracks(rows, fps, width, height, f)
+    t["shot_starts"] = np.array([x for x in starts if x < max(f, 1)], np.int32)
     if cfg.get("stitch", True):
         t = stitch_tracks(t, cfg["stitch_max_gap"], cfg["stitch_max_dist"])
     return t
@@ -138,6 +167,7 @@ def clip_summary(t):
     return {
         "frames": n_frames,
         "rows": int(len(t["frame_idx"])),
+        "shots": int(len(t["shot_starts"])) if "shot_starts" in t else 1,
         "unique_ids": int(len(set(t["track_id"].tolist()))),
         "raw_ids": int(len(set(t["raw_track_id"].tolist()))) if "raw_track_id" in t else None,
         "frames_with_1plus": len(per_frame),
@@ -171,8 +201,11 @@ def render_preview(video_path, t, out_path):
     return True
 
 
-def run(clean_manifest, cfg, tracks_dir, limit=None, force=False, preview_dir=None):
-    """Track every clip in the M2 manifest; return a list of per-clip summaries."""
+def run(clean_manifest, cfg, tracks_dir, limit=None, force=False, preview_dir=None, shots_dir=None, shots_cfg=None):
+    """Track every clip in the M2 manifest; return a list of per-clip summaries.
+
+    shots_dir / shots_cfg: where per-clip shot files live and how to detect them (None = treat every clip as one shot).
+    """
     summaries, failed = [], []
     clips = clean_manifest["clips"][:limit] if limit else clean_manifest["clips"]
     for c in clips:
@@ -182,7 +215,14 @@ def run(clean_manifest, cfg, tracks_dir, limit=None, force=False, preview_dir=No
             if out.exists() and not force:
                 t = load_tracks(out)  # resumable: reuse earlier result
             else:
-                t = track_clip(video, cfg, c["fps"], c["width"], c["height"])
+                starts = None
+                if shots_dir is not None:
+                    d = load_shots(shots_dir, c["category"], c["clip_id"])
+                    if d is None:
+                        d = detect_shots(video, shots_cfg["method"], float(shots_cfg["threshold"]), float(shots_cfg["min_shot_s"]), shots_cfg["device"], c["clip_id"])
+                        save_shots(shots_dir, c["category"], c["clip_id"], d)
+                    starts = [sh["start_f"] for sh in d["shots"]]
+                t = track_clip(video, cfg, c["fps"], c["width"], c["height"], starts)
                 out.parent.mkdir(parents=True, exist_ok=True)
                 np.savez_compressed(out, **t)
         except Exception as e:  # one bad clip must not stop a long Colab run
@@ -200,7 +240,7 @@ def run(clean_manifest, cfg, tracks_dir, limit=None, force=False, preview_dir=No
 
 def main():
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    ap = argparse.ArgumentParser(description="M8a: detect + pose + ByteTrack, cache tracks")
+    ap = argparse.ArgumentParser(description="M8a: detect + pose + track (shot-aware), cache tracks")
     ap.add_argument("--config", default=None)
     ap.add_argument("--limit", type=int, default=None, help="only first N clips (testing)")
     ap.add_argument("--force", action="store_true", help="recompute even if cached")
@@ -210,7 +250,9 @@ def main():
     cfg = load_config(args.config)
     clean = json.loads(resolve_path(cfg["preprocess"]["clean_manifest_path"]).read_text("utf-8"))
     tracks_dir = resolve_path(cfg["assm"]["tracks_dir"])
-    summaries, failed = run(clean, cfg["assm"], tracks_dir, args.limit, args.force, args.preview_dir)
+    use_shots = cfg["assm"].get("use_shots", True)
+    summaries, failed = run(clean, cfg["assm"], tracks_dir, args.limit, args.force, args.preview_dir,
+                            resolve_path(cfg["context"]["context_dir"]) if use_shots else None, cfg["shots"] if use_shots else None)
 
     print(f"\nTracked {len(summaries)} clips, {len(failed)} failed -> {tracks_dir}")
     by_cat = {}

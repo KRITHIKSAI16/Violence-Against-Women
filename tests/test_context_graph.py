@@ -187,3 +187,45 @@ def test_scene_line_reports_uncertainty_and_assumptions():
     s = scene_line(facts)
     for needle in ("outdoor (uncertain)", "low-light", "moving camera", "3 people", "40%", "1 door", "60 degree"):
         assert needle in s
+
+
+# ---------------------------------------------------------------- edited clips (several shots)
+def two_shot_tracks():
+    """Shot 0 (frames 0-99): two people standing far apart. Shot 1 (frames 100-399, 10 s): a follower retraces a leader. Ids are unique per shot."""
+    from src.assm.track_poses import pack_tracks
+    from src.video.shots import SHOT_BASE
+    from tests.test_context_pose_follow import skeleton
+    rows = []
+
+    def add(f, tid, cx, top=150.0, h=100.0):
+        kp = skeleton(cx, top, h, "camera").astype(np.float32)
+        rows.append((f, tid, np.array([cx - 0.2 * h, top, cx + 0.2 * h, top + h], np.float32), 0.9, kp))
+    for f in range(100):
+        add(f, 1, 100.0)
+        add(f, 2, 560.0)
+    for f in range(100, 400):
+        t = (f - 100) / FPS
+        add(f, SHOT_BASE + 1, 160 + 50.0 * (t - 2.0))
+        add(f, SHOT_BASE + 2, 160 + 50.0 * t)
+    t = pack_tracks(rows, FPS, W, H, 400)
+    t["shot_starts"] = np.array([0, 100], np.int32)
+    return t
+
+
+def test_pairs_never_form_across_a_cut_and_the_story_names_its_shot():
+    from src.video.shots import SHOT_BASE
+    t = two_shot_tracks()
+    sc, arr = analyze_context(t, CTX)
+    assert (1, SHOT_BASE + 1) not in arr and (2, SHOT_BASE + 2) not in arr and all((i < SHOT_BASE) == (j < SHOT_BASE) for i, j in arr)
+    st = build_story(t, sc, arr, None, None, CTX, ST, "edit", "Stalking")
+    assert st["key_pair"] == f"{SHOT_BASE + 1}_{SHOT_BASE + 2}" and "follows" in st["preds_seen"]
+    sh = st["scene"]["shot"]
+    assert (sh["index"], sh["n_shots"], sh["start_f"], sh["end_f"]) == (1, 2, 100, 399) and sh["start_s"] == pytest.approx(100 / FPS, abs=0.01)
+    md = narrative_markdown(st)
+    assert "shot 2 of 2" in md and "id1 follows id2" in md and "id100001" not in md       # readable per-shot ids in the text
+    json.dumps(st, default=float)
+
+
+def test_story_of_a_single_shot_clip_has_no_edit_note():
+    st, _ = _story({1: lambda t: (160 + 50.0 * (t - 2.0), 150), 2: lambda t: (160 + 50.0 * t, 150)})
+    assert st["scene"]["shot"]["n_shots"] == 1 and "edited video" not in scene_line(st["scene"])

@@ -179,3 +179,35 @@ def test_story_prefers_layout_light_over_the_stage_a_mean_brightness_flag():
     assert _low_light({"light": {"low_light": True}}, scene) is True       # lamp-lit night street: Stage A said 'not night', the robust statistic says low light
     assert _low_light(None, {"camera": {"night": True}}) is True
     assert _low_light({"light": {"low_light": None}}, scene) is False
+
+
+def test_key_shot_range_picks_the_shot_of_the_key_pair_else_the_longest():
+    from src.context.scene import key_shot_range
+    from src.video.shots import SHOT_BASE as B
+    tr = {"shot_starts": np.array([0, 40, 100], np.int32)}
+    scene = {"n_frames": 300}
+    assert key_shot_range(tr, scene, (B + 3, B + 5)) == (40, 99, 1)             # pair ids carry the shot index
+    assert key_shot_range(tr, scene, (3, 5)) == (0, 39, 0)
+    assert key_shot_range(tr, scene, None) == (100, 299, 2)                      # no pair: the longest shot
+    assert key_shot_range({}, scene, (3, 5)) == (0, 299, 0)                      # old caches without shots: the whole clip
+    assert key_shot_range(tr, scene, (9 * B + 1, 9 * B + 2))[2] == 2             # an out-of-range shot index falls back to the longest shot
+
+
+def test_clip_layout_samples_only_inside_the_given_shot(tmp_path):
+    import cv2
+    from src.context.scene import clip_layout
+
+    class SpyModels:
+        def __init__(self):
+            self.means = []
+
+        def segment(self, img):
+            self.means.append(int(img.mean()))
+            return np.zeros((128, 128), np.uint8), 0.9, 0.0
+    vw = cv2.VideoWriter(str(tmp_path / "v.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), 30.0, (64, 48))
+    for k in range(120):
+        vw.write(np.full((48, 64, 3), 40 if k < 60 else 200, np.uint8))             # shot A is dark, shot B is bright
+    vw.release()
+    spy = SpyModels()
+    clip_layout(tmp_path / "v.mp4", (60, 119), spy, False, 5)
+    assert spy.means and all(m > 150 for m in spy.means)                              # only bright (shot B) frames were segmented

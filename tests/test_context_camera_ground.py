@@ -150,3 +150,35 @@ def test_camera_compensation_changes_lateral_position_only_by_the_pan():
     assert abs(still[1]["X"][50] - still[1]["X"][10]) < 0.02
     assert abs(moving[1]["X"][50] - moving[1]["X"][10]) > 1.0
     assert boxes_from_tracks(t)[0][0][3] == pytest.approx(300.0)
+
+
+def _two_shot_video(path, n1=25, n2=25, step1=3.0, step2=0.0, w=400, h=300):
+    """Scene A (pans step1 px/frame) then a hard cut to a different scene B (pans step2 px/frame)."""
+    a, b = _textured(w, h, seed=0), _textured(w, h, seed=5)
+    vw = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), FPS, (w, h))
+    for k in range(n1):
+        x0 = int(round(50 + step1 * k))
+        vw.write(np.ascontiguousarray(a[40:40 + h, x0:x0 + w]))
+    for k in range(n2):
+        x0 = int(round(50 + step2 * k))
+        vw.write(np.ascontiguousarray(b[40:40 + h, x0:x0 + w]))
+    vw.release()
+    return path
+
+
+def test_cut_resets_the_camera_reference_and_ignores_flow_across_the_cut(tmp_path):
+    p = _two_shot_video(tmp_path / "cut.mp4")
+    cam = estimate_camera(p, None, 320, shot_starts=[0, 25])
+    assert cam["cuts"] == [25]
+    assert np.allclose(cam["T"][25], np.eye(3)) and np.allclose(cam["M"][25], np.eye(3)) and not cam["ok"][25]
+    # a point fixed in scene B at its first-frame position (100, 150) stays there in shot-relative coordinates (scene B is static)
+    assert compensate(cam["T"], np.array([40]), np.array([[100.0, 150.0]]))[0] == pytest.approx([100.0, 150.0], abs=3.0)
+    # inside shot A the camera really panned: compensation still recovers world positions
+    k = 20
+    assert compensate(cam["T"], np.array([k]), np.array([[100 - 3.0 * k, 150.0]]))[0, 0] == pytest.approx(100.0, abs=4.0)
+
+
+def test_cut_frame_does_not_count_as_camera_motion(tmp_path):
+    p = _two_shot_video(tmp_path / "cut2.mp4", step1=0.0, step2=0.0)             # both scenes static
+    with_cuts = summarize_camera(estimate_camera(p, None, 320, shot_starts=[0, 25]), CFG)
+    assert not with_cuts["moving"] and with_cuts["drift_frac"] < 0.02

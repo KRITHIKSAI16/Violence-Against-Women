@@ -29,6 +29,7 @@ from src.context.ground import ground_series
 from src.context.narrative import episode_text, scene_line, summary_line
 from src.context.scene import load_layout
 from src.report.buildup_video import cut_point, load_overrides, put_text
+from src.video.shots import local_id
 
 log = logging.getLogger(__name__)
 
@@ -111,7 +112,7 @@ def draw_minimap(canvas, x0, y0, size, pos, pair, frame, fps, active, extent):
             cv2.polylines(canvas, [np.array(pts, np.int32)], False, (150, 150, 150), 1)
         col = (0, 140, 255) if (active and t == active[0]["actor"]) else (255, 170, 40)
         cv2.circle(canvas, to_px(P[t]), 5, col, -1)
-        put_text(canvas, f"id{t}", (to_px(P[t])[0] + 6, to_px(P[t])[1] - 4), 0.35, (255, 255, 255))
+        put_text(canvas, f"id{local_id(t)}", (to_px(P[t])[0] + 6, to_px(P[t])[1] - 4), 0.35, (255, 255, 255))
     if len(here) == 2:
         put_text(canvas, f"{np.linalg.norm(P[ids[0]] - P[ids[1]]):.1f} m", (x0 + 4, y0 + size - 5), 0.38, (230, 230, 230))
     else:
@@ -128,18 +129,19 @@ def draw_header(canvas, w, eps, scale):
         put_text(canvas, _fit(episode_text(e), w, scale), (6, 17 + 18 * k), scale, COLOR_OF.get(e["pred"], (255, 255, 255)), 1)
 
 
-def draw_strip(canvas, top, w, story, frame, n_frames, cut_f):
+def draw_strip(canvas, top, w, story, frame, span, cut_f):
+    first, last = span              # frame range shown (the key pair's shot, up to the cut)
     h = strip_height()
     cv2.rectangle(canvas, (0, top), (w, top + h), (25, 25, 25), -1)
     x0, x1 = 34, w - 6
-    X = lambda f: int(x0 + (x1 - x0) * f / max(n_frames - 1, 1))
+    X = lambda f: int(x0 + (x1 - x0) * (min(max(f, first), last) - first) / max(last - first, 1))
     eps = key_episodes(story)
     for r, (label, preds, col) in enumerate(FAMILY):
         y = top + PAD + r * ROW
         put_text(canvas, label, (1, y + ROW - 1), 0.28, col)
         cv2.rectangle(canvas, (x0, y + 1), (x1, y + ROW - 1), (45, 45, 45), -1)
         for e in eps:
-            if e["pred"] in preds and e["start_f"] < cut_f:
+            if e["pred"] in preds and e["start_f"] < cut_f and e["end_f"] >= first:
                 cv2.rectangle(canvas, (X(e["start_f"]), y + 1), (X(min(e["end_f"], cut_f - 1)), y + ROW - 1), col, -1)
     cy0 = top + 2 * PAD + len(FAMILY) * ROW
     cv2.rectangle(canvas, (x0, cy0), (x1, cy0 + CURVE_H), (40, 40, 40), -1)
@@ -152,9 +154,9 @@ def draw_strip(canvas, top, w, story, frame, n_frames, cut_f):
         pts = np.array([(X(int(c[0] * story["fps"])), int(zero - c[1] / ymax * CURVE_H * 0.55)) for c in curve], np.int32)
         cv2.polylines(canvas, [pts], False, (255, 255, 0), 1)
     put_text(canvas, "cue", (1, cy0 + 20), 0.28, (255, 255, 0))
-    if cut_f < n_frames:
+    if cut_f < last + 1 and cut_f <= last:
         cv2.line(canvas, (X(cut_f), top), (X(cut_f), top + h), (0, 0, 255), 2)
-    cv2.line(canvas, (X(min(frame, n_frames - 1)), top), (X(min(frame, n_frames - 1)), top + h), (255, 255, 255), 1)
+    cv2.line(canvas, (X(frame), top), (X(frame), top + h), (255, 255, 255), 1)
 
 
 def withheld_card(w, h, story, cut, esc_text):
@@ -164,7 +166,7 @@ def withheld_card(w, h, story, cut, esc_text):
              "footage withheld", esc_text]
     for e in key_episodes(story)[:5]:
         if e["pred"] not in ACT_PREDS:
-            lines.append(_fit(f"{e['start_s']:.1f}-{e['end_s']:.1f}s  {e['pred'].replace('_', ' ')}  id{e['actor']} -> id{e['target']}", w, sc * 0.8))
+            lines.append(_fit(f"{e['start_s']:.1f}-{e['end_s']:.1f}s  {e['pred'].replace('_', ' ')}  id{local_id(e['actor'])} -> id{local_id(e['target'])}", w, sc * 0.8))
     y = max(30, h // 2 - 18 * len(lines) // 2)
     for k, text in enumerate(lines):
         if not text:
@@ -181,7 +183,7 @@ def _draw_people(img, t, rows, key_ids):
         tid = int(t["track_id"][k])
         hot = tid in key_ids
         cv2.rectangle(img, (x1, y1), (x2, y2), (0, 120, 255) if hot else (0, 200, 0), 3 if hot else 1)
-        put_text(img, f"id{tid}", (x1, max(12, y1 - 4)), 0.5, (255, 255, 255), 1)
+        put_text(img, f"id{local_id(tid)}", (x1, max(12, y1 - 4)), 0.5, (255, 255, 255), 1)
 
 
 def _draw_doors(img, layout):
@@ -194,20 +196,28 @@ def _draw_doors(img, layout):
 
 
 # ---------------------------------------------------------------- rendering
+def shown_range(story, cut):
+    """(first, last_exclusive) frames shown: the key pair's shot from its start, up to the cut."""
+    sh = story["scene"].get("shot") or {"start_f": 0, "end_f": story["n_frames"] - 1}
+    return sh["start_f"], min(cut["cut_f"], sh["end_f"] + 1)
+
+
 def render_story_video(video_path, t, story, layout, cut, ctx, rep, out_path):
-    """Write the story video; None when there is too little pre-violence footage."""
-    if not cut["show"] or story["no_pair"]:
+    """Write the story video; None when there is too little pre-violence footage in the key pair's shot."""
+    first, last = shown_range(story, cut)
+    if not cut["show"] or story["no_pair"] or (last - first) / story["fps"] < rep["min_video_s"]:
         return None
     pair = tuple(story["pairs"][story["key_pair"]]["pair"])
     pos = pair_ground(t, ctx, pair)
-    shown = slice(0, max(1, cut["cut_f"]))
+    shown = slice(first, max(first + 1, last))
     dd = np.linalg.norm(pos[pair[0]][shown] - pos[pair[1]][shown], axis=1)
     dmax = float(np.nanmax(dd)) if np.isfinite(dd).any() else 3.0
     extent = float(np.clip(1.3 * dmax, 3.0, 12.0))
     cap = cv2.VideoCapture(str(video_path))
     w, h = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS) or story["fps"]
-    n_frames, sh = story["n_frames"], strip_height()
+    cap.set(cv2.CAP_PROP_POS_FRAMES, first)
+    sh = strip_height()
     H = HEADER_H + h + sh
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -218,7 +228,8 @@ def render_story_video(video_path, t, story, layout, cut, ctx, rep, out_path):
         rows.setdefault(f, []).append(k)
     sc = min(0.55, w / 900)
     mm = int(min(150, w * 0.32, h * 0.45))
-    for f in range(cut["cut_f"]):
+    n_shots = story["scene"].get("shot", {}).get("n_shots", 1)
+    for f in range(first, last):
         ok, img = cap.read()
         if not ok:
             break
@@ -229,8 +240,8 @@ def render_story_video(video_path, t, story, layout, cut, ctx, rep, out_path):
         draw_header(canvas, w, act, sc)
         canvas[HEADER_H:HEADER_H + h] = img
         draw_minimap(canvas, w - mm - 4, HEADER_H + 4, mm, pos, pair, f, fps, act, extent)
-        put_text(canvas, f"{f / fps:.1f}s", (6, HEADER_H + 16), 0.5, (255, 255, 255))
-        draw_strip(canvas, HEADER_H + h, w, story, f, n_frames, cut["cut_f"])
+        put_text(canvas, f"{f / fps:.1f}s" + (f"  shot {story['scene']['shot']['index'] + 1}/{n_shots}" if n_shots > 1 else ""), (6, HEADER_H + 16), 0.5, (255, 255, 255))
+        draw_strip(canvas, HEADER_H + h, w, story, f, (first, last), cut["cut_f"])
         vw.write(canvas)
     cap.release()
     if cut["trimmed"]:
@@ -247,19 +258,21 @@ def render_story_video(video_path, t, story, layout, cut, ctx, rep, out_path):
 
 def pick_story_frames(story, cut, max_frames=6):
     """[(frame, caption)] one keyframe per distinct predicate episode, before the cut."""
-    last = max(0, cut["cut_f"] - 1)
+    first, end = shown_range(story, cut)
+    last = max(first, end - 1)
     seen, out = set(), []
     for e in key_episodes(story):
-        if e["start_f"] >= cut["cut_f"] or e["pred"] in seen or e["pred"] in ACT_PREDS:
+        if e["start_f"] >= end or e["end_f"] < first or e["pred"] in seen or e["pred"] in ACT_PREDS:
             continue
         seen.add(e["pred"])
-        out.append((min(last, (e["start_f"] + e["end_f"]) // 2), episode_text(e)))
+        out.append((min(last, max(first, (e["start_f"] + e["end_f"]) // 2)), episode_text(e)))
     out = out[:max_frames]
-    return out or [(f, "no cue detected at this moment") for f in sorted({0, last // 2, last})]
+    return out or [(f, "no cue detected at this moment") for f in sorted({first, (first + last) // 2, last})]
 
 
 def render_story_board(video_path, t, story, cut, out_path, tile_w=440):
-    if not cut["show"]:
+    first, last = shown_range(story, cut)
+    if not cut["show"] or (last - first) / story["fps"] < 0.5:
         return None
     cap = cv2.VideoCapture(str(video_path))
     fps = story["fps"]

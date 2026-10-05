@@ -31,9 +31,14 @@ def _mask(shape, boxes, scale, pad=0.15):
     return m
 
 
-def estimate_camera(video_path, boxes_by_frame=None, max_side=320):
-    """Per-frame frame-to-previous motion and scene stats. boxes_by_frame: {frame: [(x1,y1,x2,y2), ...]} in video pixels."""
+def estimate_camera(video_path, boxes_by_frame=None, max_side=320, shot_starts=None):
+    """Per-frame frame-to-previous motion and scene stats. boxes_by_frame: {frame: [(x1,y1,x2,y2), ...]} in video pixels.
+
+    shot_starts: first frame of each shot. Flow between the last frame of one shot and the first of the next is meaningless, so at
+    a cut the motion is the identity and the cumulative transform restarts (frame-0 coordinates become the shot's own first frame).
+    """
     boxes_by_frame = boxes_by_frame or {}
+    cuts = set(int(x) for x in (shot_starts or [])) - {0}
     cap = cv2.VideoCapture(str(video_path))
     ok, frame = cap.read()
     if not ok:
@@ -54,7 +59,7 @@ def estimate_camera(video_path, boxes_by_frame=None, max_side=320):
         cur = _small(frame, scale)
         M = np.eye(3)
         good = False
-        pts = cv2.goodFeaturesToTrack(prev, maxCorners=200, qualityLevel=0.01, minDistance=7,
+        pts = None if t in cuts else cv2.goodFeaturesToTrack(prev, maxCorners=200, qualityLevel=0.01, minDistance=7,
                                       mask=_mask(prev.shape, boxes_by_frame.get(t - 1, []), scale))
         if pts is not None and len(pts) >= 10:
             nxt, st, _ = cv2.calcOpticalFlowPyrLK(prev, cur, pts, None)
@@ -77,17 +82,21 @@ def estimate_camera(video_path, boxes_by_frame=None, max_side=320):
     T = np.empty_like(ms)
     T[0] = np.eye(3)
     for k in range(1, n):
-        T[k] = T[k - 1] @ np.linalg.inv(ms[k])             # frame k -> frame k-1 -> ... -> frame 0
+        T[k] = np.eye(3) if k in cuts else T[k - 1] @ np.linalg.inv(ms[k])     # frame k -> k-1 -> ... -> the first frame of its shot
     return {"M": ms, "T": T, "ok": np.array(good_frames), "size": (w0, h0), "brightness": float(np.mean(lum)),
-            "sharpness": float(np.median(sharp))}
+            "sharpness": float(np.median(sharp)), "cuts": sorted(cuts)}
 
 
 def summarize_camera(cam, cfg):
     """Scalars describing the camera: moving flag, drift, jitter, quality."""
     w, h = cam["size"]
     side = float(max(w, h))
-    tr = np.linalg.norm(cam["M"][1:, :2, 2], axis=1) / side if len(cam["M"]) > 1 else np.zeros(1)
-    drift = float(np.linalg.norm(cam["T"][-1][:2, 2]) / side)
+    cuts = set(cam.get("cuts", []))
+    steps = np.linalg.norm(cam["M"][1:, :2, 2], axis=1) / side if len(cam["M"]) > 1 else np.zeros(1)
+    keep = np.array([(k + 1) not in cuts for k in range(len(steps))], bool) if len(steps) else np.ones(0, bool)
+    tr = steps[keep] if keep.any() else np.zeros(1)
+    # drift = the largest displacement from the start of any shot (a cut resets the reference frame)
+    drift = float(max(np.linalg.norm(T[:2, 2]) for T in cam["T"]) / side)
     share = float((tr > cfg["camera_move_frac"]).mean()) if len(tr) else 0.0
     moving = share > cfg["camera_moving_share"] or drift > 0.15
     return {"moving": bool(moving), "moving_share": round(share, 3), "drift_frac": round(drift, 3),

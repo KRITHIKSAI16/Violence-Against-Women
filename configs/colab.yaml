@@ -24,6 +24,7 @@ assm:
   stitch_max_gap: 45                 # frames a person may vanish and still be re-joined
   stitch_max_dist: 1.5               # max jump in body heights between end and restart
   device: auto
+  use_shots: true
   tracks_dir: /content/drive/MyDrive/VAW_results/tracks
   # M8b Algorithm 1 (starting values: equal weights, tune on the full set)
   w1: 1.0                # weight on 1/d  (d in body heights)
@@ -159,3 +160,10 @@ story:
     target_stops: 0.7
     target_speeds_up: 1.0
     mutual_facing: -1.5
+
+# Layer 0: shot segmentation (src/video/shots.py)
+shots:
+  method: auto               # auto = TransNetV2 if installed, else PySceneDetect, else histogram cuts
+  threshold: 0.5             # TransNetV2 transition probability above which a cut is declared
+  min_shot_s: 0.4            # shorter shots (flashes, end cards) are merged into their neighbour
+  device: auto

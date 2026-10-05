@@ -248,7 +248,7 @@ def _one_clip(args):
         return clip, None, "no tracks"
     try:
         t = load_tracks(tp)
-        cam = estimate_camera(resolve_path(clip["path"]), boxes_from_tracks(t), ctx["camera_max_side"])
+        cam = estimate_camera(resolve_path(clip["path"]), boxes_from_tracks(t), ctx["camera_max_side"], t["shot_starts"].tolist() if "shot_starts" in t else None)
         scene, arrays = analyze_context(t, ctx, cam)
         save_context(scene, arrays, out_dir, clip["category"], clip["clip_id"])
         return clip, scene, "ok"

@@ -117,3 +117,24 @@ def test_minimap_draws_available_people_and_ignores_cropped_positions():
     empty = np.zeros((300, 300, 3), np.uint8)
     draw_minimap(empty, 10, 10, 150, {1: np.full((60, 2), np.nan), 2: np.full((60, 2), np.nan)}, (1, 2), 10, FPS, [], 6.0)
     assert empty[10:160, 10:160].sum() > 0                               # the 'pair not in view' note is drawn
+
+
+def test_video_of_an_edited_clip_shows_only_the_key_pairs_shot(tmp_path):
+    from tests.test_context_graph import two_shot_tracks
+    t = two_shot_tracks()
+    sc, arr = analyze_context(t, CTX)
+    st = build_story(t, sc, arr, None, None, CTX, ST, "edit", "Stalking")
+    cut = story_cut(st, "Stalking", None, REP)
+    video = video_for(tmp_path / "v.mp4", 400)
+    out = render_story_video(video, t, st, None, cut, CTX, REP, tmp_path / "e.mp4")
+    cap = cv2.VideoCapture(str(out))
+    assert int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) == 300                               # frames 100..399 only, no card (whole shot shown)
+    ok, first = cap.read()
+    assert ok and first[HEADER_FRAME_TOP:HEADER_FRAME_TOP + 60, 5:80].max() > 200      # the burned-in frame counter of the shot's first frame is visible
+    pick = pick_story_frames(st, cut)
+    assert pick and all(100 <= f < 400 for f, _ in pick)
+    sb = render_story_board(video, t, st, cut, tmp_path / "sb.jpg")
+    assert sb is not None
+
+
+HEADER_FRAME_TOP = 58

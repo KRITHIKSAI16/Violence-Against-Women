@@ -29,6 +29,7 @@ import numpy as np
 
 from src.assm.gate import runs
 from src.config import load_config, resolve_path
+from src.video.shots import SHOT_BASE
 
 log = logging.getLogger(__name__)
 
@@ -258,6 +259,16 @@ def _low_light(layout_facts, scene):
     return bool(scene["camera"].get("night"))
 
 
+def shot_facts(t, scene, key_pair_ids):
+    """Which shot the story describes (the one holding the key pair) and how many shots the clip has."""
+    n, fps = scene["n_frames"], scene["fps"]
+    starts = [int(x) for x in t["shot_starts"]] if "shot_starts" in t else [0]
+    ends = [x - 1 for x in starts[1:]] + [n - 1]
+    shot = min(int(key_pair_ids[0]) // SHOT_BASE, len(starts) - 1) if key_pair_ids else int(np.argmax([e - s for s, e in zip(starts, ends)]))
+    return {"index": shot, "n_shots": len(starts), "start_f": starts[shot], "end_f": ends[shot],
+            "start_s": round(starts[shot] / fps, 2), "end_s": round((ends[shot] + 1) / fps, 2)}
+
+
 def build_story(t, scene, arrays, layout_facts, depth, ctx, story, clip_id="", category=""):
     """The whole story of a clip: scene facts, episodes of the top pairs, key pair, escalation, narrative-ready summaries."""
     from src.context.features import rank_pairs
@@ -282,6 +293,7 @@ def build_story(t, scene, arrays, layout_facts, depth, ctx, story, clip_id="", c
         "low_light": _low_light(layout_facts, scene), "camera_moving": cam_moving, "max_people": scene["max_people"],
         "isolated_frac": scene["isolated_frac"], "n_pairs": scene["n_pairs"], "duration_s": scene["duration_s"],
         "depth_agree_frac": (depth or {}).get("depth_agree_frac"), "assumptions": scene["assumptions"],
+        "shot": shot_facts(t, scene, pairs[key_pair]["pair"] if key_pair else None),
     }
     return {"clip_id": clip_id, "category": category, "fps": fps, "n_frames": n, "scene": facts, "key_pair": key_pair,
             "no_pair": not pairs, "pairs": pairs, "escalation": esc,

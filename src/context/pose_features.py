@@ -13,6 +13,8 @@ Facing vectors live in the ground-plane frame of `ground.py`: X right, Z away fr
 output carries a confidence so weak evidence can be ignored. Hidden-follower research (AAAI 2024) found gaze / head cues add
 information on top of spacing, which is why head facing is computed at all.
 """
+import warnings
+
 import numpy as np
 
 NOSE, LEYE, REYE, LEAR, REAR, LSHO, RSHO, LELB, RELB, LWRI, RWRI, LHIP, RHIP = range(13)
@@ -122,7 +124,9 @@ def contact_features(pi, pj, hm, vel_frames, fps):
     out = {"wrist_torso_m": np.fmin(d_ij, d_ji) * scale}
 
     def reach(pa, pb):
-        tc = np.nanmean(pb["torso"], axis=1) if np.isfinite(pb["torso"]).any() else np.full((len(h), 2), np.nan)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)         # frames where the torso keypoints are not visible give NaN, by design
+            tc = np.nanmean(pb["torso"], axis=1) if np.isfinite(pb["torso"]).any() else np.full((len(h), 2), np.nan)
         best = np.full(len(h), np.nan)
         for w in (0, 1):
             wr = pa["wrist"][:, w, :]

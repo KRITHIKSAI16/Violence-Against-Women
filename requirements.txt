@@ -6,6 +6,8 @@ pandas
 pillow
 pytest
 pyyaml
+scenedetect
 scikit-learn
 transformers
+transnetv2-pytorch
 ultralytics

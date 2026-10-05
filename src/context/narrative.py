@@ -5,10 +5,11 @@ their track ids ("id3"), gives times in seconds and approximate meters, and says
 (different depth, low confidence). The text is generated from the data only; nothing is added that the detectors did not find.
 """
 from src.context.graph import ACT_PREDS, BENIGN_PREDS
+from src.video.shots import local_id
 
 
 def _who(n):
-    return f"id{n}"
+    return f"id{local_id(n)}"           # ids are unique per shot internally; people are named by their per-shot number
 
 
 def episode_text(ep):
@@ -67,6 +68,9 @@ def scene_line(facts):
     if facts.get("doors"):
         parts.append(f"{facts['doors']} door(s) detected")
     a = facts["assumptions"]
+    sh = facts.get("shot")
+    if sh and sh["n_shots"] > 1:
+        parts.insert(0, f"edited video: this describes shot {sh['index'] + 1} of {sh['n_shots']} ({sh['start_s']:.1f}-{sh['end_s']:.1f} s)")
     return "Scene: " + ", ".join(parts) + f". Distances are approximate meters (assumed {a['fov_deg']:.0f} degree field of view, {a['person_height_m']} m people)."
 
 
@@ -76,7 +80,7 @@ def summary_line(story):
     kp = story["pairs"][story["key_pair"]]
     eps = kp["episodes"]
     if not eps:
-        return f"Summary: the main pair (id{kp['pair'][0]}, id{kp['pair'][1]}) shows no approach, following, lingering or contact cues."
+        return f"Summary: the main pair (id{local_id(kp['pair'][0])}, id{local_id(kp['pair'][1])}) shows no approach, following, lingering or contact cues."
     concern = sorted({e["pred"].replace("_", " ") for e in eps if e["pred"] not in BENIGN_PREDS})
     benign = sorted({e["pred"].replace("_", " ") for e in eps if e["pred"] in BENIGN_PREDS})
     s = f"Summary: concern cues {kp['concern_seconds']:.1f} s ({', '.join(concern) or 'none'}); benign cues {kp['benign_seconds']:.1f} s ({', '.join(benign) or 'none'})."
