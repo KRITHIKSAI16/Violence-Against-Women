@@ -204,4 +204,7 @@ phase:
   switch_penalty: 2.0        # decoder: cost of changing phase (higher = fewer, cleaner phase changes)
   min_build_s: 1.0           # a decoded buildup shorter than this is reported as no buildup
   folds: 5
+  embed_model: facebook/vjepa2-vitl-fpc64-256
+  embed_fps: 8.0
+  emb_dims: 64               # PCA size of the V-JEPA 2 embedding (fitted on training windows only)
   extra_prefixes: []         # add "emb_" (V-JEPA 2) and/or "pose_" columns when those stages have been run

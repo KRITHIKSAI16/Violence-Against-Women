@@ -19,6 +19,7 @@ import pandas as pd
 
 from src.assm.gate import load_gate
 from src.config import load_config, resolve_path
+from src.phase.embed import attach_pca
 from src.phase.dataset import CHANGE, build_window_table, feature_columns
 from src.phase.evaluate import evaluate, print_scores
 from src.phase.labels import merge, read_labels
@@ -79,6 +80,8 @@ def main():
     train_ids = {c for c, l in vlm.items() if c not in hold and l["source"] == "vlm"}
     test_ids = {c for c, l in human.items() if c in hold and l["source"] == "human"}
     extra = tuple(pc.get("extra_prefixes", []))
+    if "emb_" in extra:                                   # V-JEPA 2 embeddings, PCA fitted on the training clips only
+        df = attach_pca(df, out / "emb", {c["clip_id"]: c["category"] for c in clean}, train_ids, int(pc["emb_dims"]))
     cols = feature_columns(df, extra)
     dur = {c["clip_id"]: c["duration_s"] for c in clean}
     log.info("train clips (agreed VLM labels, not held out): %d | test clips (human labels, held out): %d", len(train_ids), len(test_ids))
@@ -107,9 +110,13 @@ def main():
     print_scores(evaluate(rule, truth, dur), "  rule gate    : ")
     print_scores(evaluate(fixed, truth, dur), "  fixed 60%    : ")
     if args.ablate:
-        groups = {"without change features": [c for c in cols if c not in CHANGE],
+        groups = {"without emb_ (pose/geometry only)": [c for c in cols if not c.startswith("emb_")],
+                  "emb_ only": [c for c in cols if c.startswith("emb_")],
+                  "without change features": [c for c in cols if c not in CHANGE],
                   "change features only": [c for c in cols if c in CHANGE] + [c for c in cols if c.startswith("scene_")]}
         for name, cc in groups.items():
+            if not cc or (name.startswith("emb_") and not any(c.startswith("emb_") for c in cols)) or (name.startswith("without emb_") and cc == cols):
+                continue
             m = fit(tr, cc)
             print_scores(evaluate(decode_table(te, predict_probs(m, te, cc), sw, mb), truth, dur), f"  {name:<22}: ")
     save_predictions(out / "pred", clean, te, probs, pred)
