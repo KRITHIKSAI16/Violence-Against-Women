@@ -167,3 +167,17 @@ shots:
   threshold: 0.5             # TransNetV2 transition probability above which a cut is declared
   min_shot_s: 0.4            # shorter shots (flashes, end cards) are merged into their neighbour
   device: auto
+
+# Layer 1: perception shootout (src/perception/shootout.py). Each entry overrides the assm block for that candidate.
+perception:
+  shootout_dir: data/shootout
+  max_s: 12                  # seconds of each clip used for the comparison
+  holdout_file: configs/holdout_clips.txt
+  configs:
+    - {name: v8n_640_byte,     model: models/yolov8n-pose.pt,  imgsz: 640,  tracker: configs/bytetrack_vaw.yaml}
+    - {name: y26s_640_byte,    model: models/yolo26s-pose.pt,  imgsz: 640,  tracker: configs/bytetrack_vaw.yaml}
+    - {name: y26s_960_byte,    model: models/yolo26s-pose.pt,  imgsz: 960,  tracker: configs/bytetrack_vaw.yaml}
+    - {name: y26s_640_botsort, model: models/yolo26s-pose.pt,  imgsz: 640,  tracker: configs/botsort_vaw.yaml}
+    - {name: y26m_960_botsort, model: models/yolo26m-pose.pt,  imgsz: 960,  tracker: configs/botsort_vaw.yaml}
+    - {name: y26x_960_byte,    model: models/yolo26x-pose.pt,  imgsz: 960,  tracker: configs/bytetrack_vaw.yaml}
+    - {name: y26x_1280_botsort_reid, model: models/yolo26x-pose.pt, imgsz: 1280, tracker: configs/botsort_reid_vaw.yaml}

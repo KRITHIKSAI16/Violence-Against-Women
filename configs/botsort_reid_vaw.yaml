@@ -1,0 +1,14 @@
+# BoT-SORT + appearance re-identification (slower; helps identities survive occlusion and crossings).
+# Same thresholds as bytetrack_vaw.yaml so the comparison isolates the tracker, not the thresholds.
+tracker_type: botsort
+track_high_thresh: 0.4
+track_low_thresh: 0.1
+new_track_thresh: 0.4
+track_buffer: 90
+match_thresh: 0.8
+fuse_score: True
+gmc_method: sparseOptFlow
+proximity_thresh: 0.5
+appearance_thresh: 0.25
+with_reid: True
+model: auto
