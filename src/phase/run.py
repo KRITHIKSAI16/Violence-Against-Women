@@ -60,6 +60,7 @@ def main():
     ap = argparse.ArgumentParser(description="Layer 2: train / evaluate the phase model")
     ap.add_argument("--config", default=None)
     ap.add_argument("--rebuild", action="store_true", help="rebuild the window table")
+    ap.add_argument("--emb", action="store_true", help="add the V-JEPA 2 embedding columns (needs src.phase.embed to have run)")
     ap.add_argument("--ablate", action="store_true", help="also score feature-group ablations")
     args = ap.parse_args()
     cfg = load_config(args.config)
@@ -79,7 +80,7 @@ def main():
     labels = merge(vlm, human)
     train_ids = {c for c, l in vlm.items() if c not in hold and l["source"] == "vlm"}
     test_ids = {c for c, l in human.items() if c in hold and l["source"] == "human"}
-    extra = tuple(pc.get("extra_prefixes", []))
+    extra = tuple(pc.get("extra_prefixes", [])) + (("emb_",) if args.emb else ())
     if "emb_" in extra:                                   # V-JEPA 2 embeddings, PCA fitted on the training clips only
         df = attach_pca(df, out / "emb", {c["clip_id"]: c["category"] for c in clean}, train_ids, int(pc["emb_dims"]))
     cols = feature_columns(df, extra)
