@@ -195,3 +195,13 @@ label:
   short_side: 336
   agree_s: 1.5                       # both passes must agree within this many seconds
   min_build_s: 1.0                   # a lead-up shorter than this counts as none
+
+# Layer 2: learned phase model (src/phase/*)
+phase:
+  dir: data/phase
+  win_s: 2.0                 # window length (s) and step; windows never cross a cut
+  step_s: 0.5
+  switch_penalty: 2.0        # decoder: cost of changing phase (higher = fewer, cleaner phase changes)
+  min_build_s: 1.0           # a decoded buildup shorter than this is reported as no buildup
+  folds: 5
+  extra_prefixes: []         # add "emb_" (V-JEPA 2) and/or "pose_" columns when those stages have been run
