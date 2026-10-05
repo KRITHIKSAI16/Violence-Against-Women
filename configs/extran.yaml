@@ -181,3 +181,17 @@ perception:
     - {name: y26m_960_botsort, model: models/yolo26m-pose.pt,  imgsz: 960,  tracker: configs/botsort_vaw.yaml}
     - {name: y26x_960_byte,    model: models/yolo26x-pose.pt,  imgsz: 960,  tracker: configs/bytetrack_vaw.yaml}
     - {name: y26x_1280_botsort_reid, model: models/yolo26x-pose.pt, imgsz: 1280, tracker: configs/botsort_reid_vaw.yaml}
+
+# Layer 3: automatic temporal labels from a vision-language model (src/label/vlm_propose.py). An offline labeling aid, never shown in the report.
+label:
+  model: Qwen/Qwen3-VL-8B-Instruct   # use Qwen/Qwen3-VL-4B-Instruct if the GPU memory or time is tight
+  load_4bit: true
+  vlm_dir: data/label/vlm            # one JSON per clip: both answers, status agree/disagree/invalid
+  vlm_labels: data/label/vlm_labels.csv
+  human_labels: data/label/human_labels.csv
+  fps_a: 2.0                         # pass A samples 2 frames/s, pass B 1 frame/s with different wording
+  fps_b: 1.0
+  max_frames: 48
+  short_side: 336
+  agree_s: 1.5                       # both passes must agree within this many seconds
+  min_build_s: 1.0                   # a lead-up shorter than this counts as none
