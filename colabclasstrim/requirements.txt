@@ -1,0 +1,6 @@
+-r ../requirements.txt
+openpyxl
+accelerate
+sentencepiece
+sentence-transformers
+bitsandbytes

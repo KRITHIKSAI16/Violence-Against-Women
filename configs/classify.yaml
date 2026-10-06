@@ -1,0 +1,30 @@
+# Settings of the classification pipelines (colabclasstrim / colabclassfull). Paths are NOT here: they are derived from the output folder at run time
+# (src/classcommon/config.py builds the full config from configs/colab.yaml + this file and writes it as class_config.yaml in the output folder).
+classify:
+  use_captions: true          # Layer B: a video-language model describes a few frames; false = geometry text only (switch with --no-captions)
+  span_s: 3.0                 # trim task: every clip (violent AND Normal) is judged on its last span_s seconds; its text and features use only that window
+  win_s: 2.0                  # length of one video-model window
+  step_s: 0.5                 # step between windows inside the span
+  max_windows: 24             # full task: at most this many evenly spaced windows over the whole clip
+  max_len_s: null             # full task: cap the prepared clip length in seconds (null = the whole video)
+  n_normal: null              # full task: how many Normal clips to use (null = all)
+  encoders: [xclip, vjepa2, internvideo2]
+  text_model: BAAI/bge-small-en-v1.5
+  last_seconds: [1.5, 3.0]
+  caption:
+    model: Qwen/Qwen3-VL-4B-Instruct   # same family as src/label/vlm_propose.py; Qwen/Qwen3-VL-8B-Instruct is better when the GPU allows
+    load_4bit: true
+    n_frames_trim: 4
+    n_frames_full: 8
+    max_new_tokens: 120
+    short_side: 336
+  cv:
+    outer_folds: 5
+    repeats: 3                # odd, so the vote over repeats has no ties
+    inner_folds: 3
+    min_per_class: 10         # fewer clips than this in a class: no metrics are reported (the report says why)
+    seed: 7
+    pca_components: 16
+    C: 0.5
+    dup_hash_distance: 3      # clips whose 64-bit frame hashes differ in at most this many bits are kept in the same fold
+  bootstrap: 1000
