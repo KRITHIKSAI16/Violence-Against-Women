@@ -40,6 +40,7 @@ def build_config(out_root, base_config="configs/colab.yaml", write=True):
     cfg["manifest_path"] = str(out_root / "curated_manifest.json")
     cfg["preprocess"]["clean_manifest_path"] = str(out_root / "curated_manifest_clean.json")
     cfg["preprocess"]["processed_dir"] = str(out_root / "processed")
+    cfg["report"]["min_video_s"] = 0.8                       # short pre-violence footage is the point of this dataset
     cfg["report"]["overrides_csv"] = str(out_root / "cut_times.csv")
     cfg["perception"] = {"shootout_dir": str(out_root / "shootout"), "max_s": 12, "holdout_file": "configs/holdout_clips.txt", "configs": PERCEPTION_CANDIDATES}
     cfg["curated"] = {"out_root": str(out_root), "report_dir": str(out_root / "report"), "videos_dir": str(out_root / "videos"),

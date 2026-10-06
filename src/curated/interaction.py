@@ -11,6 +11,8 @@ are exactly the final seconds before the violence. Output (`summarize`):
 
 Everything is geometry from a monocular camera: meters are approximate (1.7 m height prior, assumed field of view).
 """
+import warnings
+
 import numpy as np
 
 from src.curated.relation import BENIGN, CONCERN, frame_labels, label_seconds, spans
@@ -18,10 +20,10 @@ from src.video.shots import local_id
 
 CONCERN_W = {"arm_raised": 1.0, "follows": 2.0, "approaches_from_behind": 1.0, "approaches": 0.6, "contact_or_reach": 2.0, "looking_back": 1.5, "close": 0.5,
              "walking_together": -1.5, "standing_together": -1.0, "closing_credit": 0.4}
-LEADUP_RULES = ["contact or reach at the end", "following", "approach from behind", "approach", "closing in", "already close at the start",
+LEADUP_RULES = ["contact or reach at the end", "following", "approach from behind", "approach", "closing in", "raised arm near the other person", "already close at the start",
                 "walking together", "no visible lead-up"]
 PHRASE = {"contact_or_reach": "{a} reaches for / touches {b}", "follows": "{a} follows {b}", "approaches_from_behind": "{a} approaches {b} from behind",
-          "approaches": "{a} moves toward {b}", "walking_together": "the two walk together", "standing_together": "the two stand close together",
+          "approaches": "{a} moves toward {b}", "walking_together": "the two walk together", "standing_together": "the two are close and nearly still or facing each other",
           "moving_apart": "the two move apart", "close_unclear": "the two are close", "apart": "the two are apart"}
 
 
@@ -54,8 +56,10 @@ def who(a, sl, ids):
 
 def raised_arm(pose, hpx=None, margin=0.05):
     """track_pose dict -> bool per frame: a wrist is above the shoulder line (arm raised: a swing, a threat, a grab) by more than `margin` of the box height."""
-    sho = np.nanmin(pose["torso"][:, 0:2, 1], axis=1) if np.isfinite(pose["torso"][:, 0:2, 1]).any() else np.full(len(pose["hpx"]), np.nan)
-    wr = np.nanmin(pose["wrist"][:, :, 1], axis=1) if np.isfinite(pose["wrist"][:, :, 1]).any() else np.full(len(sho), np.nan)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)                       # frames without visible shoulders / wrists are NaN by design
+        sho = np.nanmin(pose["torso"][:, 0:2, 1], axis=1)
+        wr = np.nanmin(pose["wrist"][:, :, 1], axis=1)
     h = pose["hpx"] if hpx is None else hpx
     with np.errstate(invalid="ignore"):
         return np.nan_to_num(wr < sho - margin * h, nan=0).astype(bool)
@@ -110,7 +114,7 @@ def last_window(a, fps, ids, seconds):
             "intimate_or_personal_frac": round(float(np.mean(np.asarray(a["zone"], float)[sl] <= 1)), 2) if sl.stop > sl.start else 0.0}
 
 
-def leadup_type(sp_secs, last, first_dist):
+def leadup_type(sp_secs, last, first_dist, raised_s=0.0):
     """-> (type, reason). Rules in LEADUP_RULES order, on the last 3 s of relation seconds and the distances."""
     L = last
     if sp_secs.get("contact_or_reach", 0) >= 0.3 or (L["contact_frac"] or 0) > 0.2:
@@ -123,11 +127,13 @@ def leadup_type(sp_secs, last, first_dist):
         return LEADUP_RULES[3], f"moves toward the other person for {sp_secs['approaches']:.1f} s"
     if (L["net_closing_m"] or 0) >= 0.8:
         return LEADUP_RULES[4], f"the gap shrinks by {L['net_closing_m']:.1f} m in the last {L['seconds']:.1f} s"
+    if raised_s >= 0.3 and (L["min_dist_m"] or 9) < 3.0:
+        return LEADUP_RULES[5], f"an arm is raised above the shoulder for {raised_s:.1f} s while within {L['min_dist_m']:.1f} m of the other person"
     if first_dist is not None and first_dist < 1.5 and (L["dist_end_m"] or 9) < 1.5:
-        return LEADUP_RULES[5], f"within {first_dist:.1f} m at the first frame and {L['dist_end_m']:.1f} m at the end"
+        return LEADUP_RULES[6], f"within {first_dist:.1f} m at the first frame and {L['dist_end_m']:.1f} m at the end"
     if sp_secs.get("walking_together", 0) + sp_secs.get("standing_together", 0) >= 1.0:
-        return LEADUP_RULES[6], "the two move or stand together without closing in"
-    return LEADUP_RULES[7], "no approach, following, reach or closing distance is measurable in the footage before the violence"
+        return LEADUP_RULES[7], "the two move or stand together without closing in"
+    return LEADUP_RULES[8], "no approach, following, reach or closing distance is measurable in the footage before the violence"
 
 
 def summarize(a, fps, ids, last_seconds=(1.5, 3.0), win_s=2.0, step_s=0.5, extra=None):
@@ -159,7 +165,10 @@ def summarize(a, fps, ids, last_seconds=(1.5, 3.0), win_s=2.0, step_s=0.5, extra
     first = _ends(a, slice(0, n))[0]
     lasts = {f"{L:g}": last_window(a, fps, ids, L) for L in last_seconds}
     lt = lasts[f"{max(last_seconds):g}"]
-    typ, why = leadup_type(secs, lt, first)
+    up = 0.0
+    if extra and extra.get("arm_raised"):
+        up = max(float(np.sum(np.asarray(v, bool)[max(0, n - round(max(last_seconds) * fps)):])) / fps for v in extra["arm_raised"].values())
+    typ, why = leadup_type(secs, lt, first, up)
     series, _ = concern_series(a, fps, raised)
     out = {"ids": [int(ids[0]), int(ids[1])], "duration_s": round(n / fps, 2), "spans": sp, "label_seconds": secs, "first_dist_m": None if first is None else round(first, 2),
            "min_dist_m": round(float(np.nanmin(dd)), 2) if np.isfinite(dd).any() else None, "last": lasts, "leadup": {"type": typ, "reason": why},

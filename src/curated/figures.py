@@ -44,10 +44,9 @@ def distance_figure(res, dist_series, fps, out_path):
     bx.set_ylim(0, 1)
     bx.set_yticks([])
     for sp in inter["spans"]:
-        if sp["label"] in ("apart", "close_unclear", "moving_apart"):
-            continue
-        bx.axvspan(sp["start_s"], sp["end_s"], color=SPAN_COLOR[span_kind(sp["label"])], alpha=0.85)
-        bx.text((sp["start_s"] + sp["end_s"]) / 2, 0.5, sp["label"].replace("_", " "), ha="center", va="center", fontsize=6.5, color="white", clip_on=True)
+        kind = span_kind(sp["label"])
+        bx.axvspan(sp["start_s"], sp["end_s"], color=SPAN_COLOR[kind], alpha=0.85 if kind != "neutral" else 0.45)
+        bx.text((sp["start_s"] + sp["end_s"]) / 2, 0.5, sp["label"].replace("_", " "), ha="center", va="center", fontsize=6.5, color="white" if span_kind(sp["label"]) != "neutral" else "#333", clip_on=True)
     bx.set_xlabel("time (s)")
     fig.tight_layout()
     out = Path(out_path)
