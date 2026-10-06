@@ -12,7 +12,8 @@ from src.assm.track_poses import load_tracks
 from src.config import resolve_path
 from src.context.features import load_context, rank_pairs
 from src.context.graph import load_story
-from src.curated.interaction import summarize
+from src.context.pose_features import track_pose
+from src.curated.interaction import raised_arm, summarize
 from src.curated.relation import THRESH
 from src.video.shots import local_id, shot_of_id
 
@@ -77,7 +78,9 @@ def analyze_clip(clip, cfg):
         return _save(res, cur)
     a = arrays[key]
     fps = scene["fps"]
-    inter = summarize(a, fps, key, tuple(cur["last_seconds"]), float(cur["window_s"]), float(cur["step_s"]))
+    n = int(t["n_frames"])
+    extra = {"arm_raised": {i: raised_arm(track_pose(t, i, n)) for i in key}}
+    inter = summarize(a, fps, key, tuple(cur["last_seconds"]), float(cur["window_s"]), float(cur["step_s"]), extra)
     res.update({"interaction": inter, "no_pair": False, "key_pair": f"{key[0]}_{key[1]}", "pair_ids_local": [local_id(key[0]), local_id(key[1])], "lines": inter["lines"],
                 "story_cues": (story or {}).get("preds_seen", []), "shot": shot_of_id(key[0])})
     return _save(res, cur)

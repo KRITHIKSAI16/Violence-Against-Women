@@ -13,7 +13,7 @@ from src.config import load_config
 DRIVE_RESULTS = "/content/drive/MyDrive/VAW_results"
 
 # Short pre-violence footage is the point here, so pairs and episodes may be a little shorter than on the full dataset.
-CONTEXT_OVERRIDES = {"min_cotracked_s": 0.6}
+CONTEXT_OVERRIDES = {"min_cotracked_s": 0.4}
 STORY_OVERRIDES = {"approach_min_s": 0.6, "very_close_min_s": 1.0, "mutual_min_s": 1.5, "block_min_s": 0.6}
 PERCEPTION_CANDIDATES = [
     {"name": "v8n_640_byte", "model": "models/yolov8n-pose.pt", "imgsz": 640, "tracker": "configs/bytetrack_vaw.yaml"},

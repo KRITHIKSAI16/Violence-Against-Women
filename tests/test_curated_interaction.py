@@ -52,3 +52,23 @@ def test_windows_skip_missing_data_and_leadup_rule_order():
     assert leadup_type({"follows": 2.0}, L, 5.0)[0] == "following"          # an earlier rule wins over a later one
     assert leadup_type({}, L, 5.0)[0] == "closing in"
     assert leadup_type({}, {**L, "net_closing_m": 0.1}, 1.0)[0] == "already close at the start"
+
+
+def test_raised_arm_pose_cue_adds_a_sentence_and_raises_concern():
+    from src.context.pose_features import track_pose
+    from src.curated.interaction import raised_arm
+    from tests.test_context_pose_follow import skeleton
+    top, h = 150.0, 100.0
+    kp_up = skeleton(300, top, h, "camera", wrists=[(260.0, top - 0.2 * h), (340.0, top + 0.5 * h)])      # left wrist above the head
+    kp_down = skeleton(300, top, h, "camera", wrists=[(260.0, top + 0.5 * h), (340.0, top + 0.5 * h)])
+    assert kp_up[9, 2] > 0.3
+    from src.assm.track_poses import pack_tracks
+    rows = [(f, 1, np.array([280, top, 320, top + h], np.float32), 0.9, (kp_up if f >= 60 else kp_down).astype(np.float32)) for f in range(90)]
+    pose = track_pose(pack_tracks(rows, FPS, 640, 480, 90), 1, 90)
+    r = raised_arm(pose)
+    assert not r[:60].any() and r[60:].all()
+    sc, arr = analyze_context(world({1: lambda t: (300, 150, 100.0), 2: lambda t: (360, 150, 100.0)}, n=90), CTX)
+    a = arr[(1, 2)]
+    s0 = summarize(a, FPS, (1, 2))
+    s1 = summarize(a, FPS, (1, 2), extra={"arm_raised": {1: r, 2: np.zeros(90, bool)}})
+    assert s1["concern_last_s"] > s0["concern_last_s"] and any("arm raised" in l for l in s1["lines"]) and not any("arm raised" in l for l in s0["lines"])

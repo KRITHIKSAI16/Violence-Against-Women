@@ -17,10 +17,10 @@ def make_video(path, seconds=8, fps=25, size=(320, 240)):
 def test_config_moves_only_drive_paths_and_leaves_the_original_alone(tmp_path):
     cfg, path = build_config(tmp_path / "out")
     assert path.exists() and cfg["assm"]["tracks_dir"] == str(tmp_path / "out" / "tracks") and cfg["context"]["context_dir"] == str(tmp_path / "out" / "context")
-    assert DRIVE_RESULTS not in json.dumps(cfg) and cfg["context"]["min_cotracked_s"] == 0.6
+    assert DRIVE_RESULTS not in json.dumps(cfg) and cfg["context"]["min_cotracked_s"] == 0.4
     from src.config import load_config
     orig = load_config("configs/colab.yaml")
-    assert orig["assm"]["tracks_dir"].startswith(DRIVE_RESULTS) and orig["context"]["min_cotracked_s"] != 0.6       # the real colab config is unchanged
+    assert orig["assm"]["tracks_dir"].startswith(DRIVE_RESULTS) and orig["context"]["min_cotracked_s"] != 0.4       # the real colab config is unchanged
     assert cfg["report"]["overrides_csv"].startswith(str(tmp_path / "out"))
 
 

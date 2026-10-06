@@ -6,7 +6,7 @@ one label (first rule that applies, in this order), then runs of one label becom
   contact_or_reach          hands at the other's torso, or a fast reach toward it
   follows                   lagged-path following (one retraces the other's path; side-by-side walking is excluded by that test)
   approaches_from_behind    one closes in on someone who is facing away
-  approaches                one moves toward the other and the gap shrinks
+  approaches                the gap shrinks; one moves toward the other (or the gap closes fast, when single speeds are not trusted: cropped boxes)
   walking_together          close, both walking at similar speed, gap steady       (benign)
   standing_together         close and both nearly still, or facing each other      (benign)
   moving_apart              the gap grows                                          (neutral)
@@ -20,7 +20,7 @@ import numpy as np
 CONCERN = {"contact_or_reach", "follows", "approaches_from_behind", "approaches"}
 BENIGN = {"walking_together", "standing_together"}
 LABELS = ["contact_or_reach", "follows", "approaches_from_behind", "approaches", "walking_together", "standing_together", "moving_apart", "close_unclear", "apart"]
-THRESH = {"approach_toward_ms": 0.3, "approach_closing_ms": 0.3, "reach_ms": 1.5, "together_max_m": 3.0, "walking_ms": 0.4, "speed_ratio_min": 0.6,
+THRESH = {"approach_toward_ms": 0.3, "approach_closing_ms": 0.3, "closing_strong_ms": 0.6, "reach_ms": 1.5, "together_max_m": 3.0, "walking_ms": 0.4, "speed_ratio_min": 0.6,
           "steady_closing_ms": 0.3, "still_ms": 0.5, "apart_closing_ms": -0.3, "close_unclear_m": 1.5, "min_span_s": 0.4, "merge_gap_s": 0.3}
 
 
@@ -43,7 +43,7 @@ def frame_labels(a, thresh=THRESH):
         ("contact_or_reach", np.asarray(a["contact"], bool) | (reach > thresh["reach_ms"])),
         ("follows", np.asarray(a["follow_i_j"], bool) | np.asarray(a["follow_j_i"], bool)),
         ("approaches_from_behind", np.asarray(a["approach_behind_i_j"], bool) | np.asarray(a["approach_behind_j_i"], bool)),
-        ("approaches", valid & (d < 8.0) & (np.fmax(ti, tj) > thresh["approach_toward_ms"]) & (clo > thresh["approach_closing_ms"])),
+        ("approaches", valid & (d < 8.0) & (clo > thresh["approach_closing_ms"]) & ((np.fmax(ti, tj) > thresh["approach_toward_ms"]) | (clo > thresh["closing_strong_ms"]))),
         ("walking_together", near & (np.fmin(si, sj) > thresh["walking_ms"]) & (np.fmin(si, sj) / np.maximum(np.fmax(si, sj), 1e-6) > thresh["speed_ratio_min"])
          & (np.abs(clo) < thresh["steady_closing_ms"])),
         ("standing_together", near & (((si < thresh["still_ms"]) & (sj < thresh["still_ms"])) | np.asarray(a["mutual_facing"], bool))),

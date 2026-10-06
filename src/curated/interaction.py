@@ -16,7 +16,7 @@ import numpy as np
 from src.curated.relation import BENIGN, CONCERN, frame_labels, label_seconds, spans
 from src.video.shots import local_id
 
-CONCERN_W = {"follows": 2.0, "approaches_from_behind": 1.0, "approaches": 0.6, "contact_or_reach": 2.0, "looking_back": 1.5, "close": 0.5,
+CONCERN_W = {"arm_raised": 1.0, "follows": 2.0, "approaches_from_behind": 1.0, "approaches": 0.6, "contact_or_reach": 2.0, "looking_back": 1.5, "close": 0.5,
              "walking_together": -1.5, "standing_together": -1.0, "closing_credit": 0.4}
 LEADUP_RULES = ["contact or reach at the end", "following", "approach from behind", "approach", "closing in", "already close at the start",
                 "walking together", "no visible lead-up"]
@@ -52,7 +52,16 @@ def who(a, sl, ids):
     return (ids[0], ids[1]) if ti >= tj else (ids[1], ids[0])
 
 
-def concern_series(a, fps):
+def raised_arm(pose, hpx=None, margin=0.05):
+    """track_pose dict -> bool per frame: a wrist is above the shoulder line (arm raised: a swing, a threat, a grab) by more than `margin` of the box height."""
+    sho = np.nanmin(pose["torso"][:, 0:2, 1], axis=1) if np.isfinite(pose["torso"][:, 0:2, 1]).any() else np.full(len(pose["hpx"]), np.nan)
+    wr = np.nanmin(pose["wrist"][:, :, 1], axis=1) if np.isfinite(pose["wrist"][:, :, 1]).any() else np.full(len(sho), np.nan)
+    h = pose["hpx"] if hpx is None else hpx
+    with np.errstate(invalid="ignore"):
+        return np.nan_to_num(wr < sho - margin * h, nan=0).astype(bool)
+
+
+def concern_series(a, fps, extra=None):
     """Per-frame concern score of the pair (heuristic weights CONCERN_W) and the per-frame relation labels."""
     lab = frame_labels(a)
     s = np.zeros(len(lab))
@@ -65,6 +74,8 @@ def concern_series(a, fps):
     zone = np.asarray(a["zone"], float)
     s += CONCERN_W["close"] * ((zone <= 1) & ~np.isin(lab, list(BENIGN)))
     s += CONCERN_W["closing_credit"] * np.clip(_nz(a["closing_ms"]), 0, 2) * (np.nan_to_num(np.asarray(a["dist_m"], float), nan=99) < 6.0)
+    if extra is not None and "arm_raised" in extra:
+        s += CONCERN_W["arm_raised"] * (np.asarray(extra["arm_raised"], bool)[:len(s)] & (np.nan_to_num(np.asarray(a["dist_m"], float), nan=99) < 3.0))
     s[lab == "none"] = np.nan
     return s, lab
 
@@ -119,8 +130,12 @@ def leadup_type(sp_secs, last, first_dist):
     return LEADUP_RULES[7], "no approach, following, reach or closing distance is measurable in the footage before the violence"
 
 
-def summarize(a, fps, ids, last_seconds=(1.5, 3.0), win_s=2.0, step_s=0.5):
-    """Everything about one pair before the violence. a: pair arrays of the key pair; ids: (id_i, id_j) track ids."""
+def summarize(a, fps, ids, last_seconds=(1.5, 3.0), win_s=2.0, step_s=0.5, extra=None):
+    """Everything about one pair before the violence. a: pair arrays of the key pair; ids: (id_i, id_j) track ids.
+    extra: optional {"arm_raised": {track id: bool array per frame}} from the pose keypoints."""
+    raised = None
+    if extra and extra.get("arm_raised"):
+        raised = {"arm_raised": np.any([np.asarray(v, bool)[:len(a["dist_m"])] for v in extra["arm_raised"].values()], axis=0)}
     n = len(a["dist_m"])
     labels = frame_labels(a)
     sp = spans(labels, fps, a["dist_m"], a["closing_ms"])
@@ -145,7 +160,7 @@ def summarize(a, fps, ids, last_seconds=(1.5, 3.0), win_s=2.0, step_s=0.5):
     lasts = {f"{L:g}": last_window(a, fps, ids, L) for L in last_seconds}
     lt = lasts[f"{max(last_seconds):g}"]
     typ, why = leadup_type(secs, lt, first)
-    series, _ = concern_series(a, fps)
+    series, _ = concern_series(a, fps, raised)
     out = {"ids": [int(ids[0]), int(ids[1])], "duration_s": round(n / fps, 2), "spans": sp, "label_seconds": secs, "first_dist_m": None if first is None else round(first, 2),
            "min_dist_m": round(float(np.nanmin(dd)), 2) if np.isfinite(dd).any() else None, "last": lasts, "leadup": {"type": typ, "reason": why},
            "concern_last_s": None, "concern_windows": window_scores(series, fps, win_s, step_s)}
@@ -153,6 +168,9 @@ def summarize(a, fps, ids, last_seconds=(1.5, 3.0), win_s=2.0, step_s=0.5):
     out["concern_last_s"] = _mean(w)
     out["concern_mean"] = _mean(series)
     out["concern_max_window"] = max((s for _, s in out["concern_windows"]), default=None)
+    if extra and extra.get("arm_raised"):
+        Lw = max(last_seconds)
+        out["arm_raised_last_s"] = {str(local_id(i)): round(float(np.sum(np.asarray(v, bool)[max(0, n - round(Lw * fps)):])) / fps, 2) for i, v in extra["arm_raised"].items()}
     out["lines"] = explain_lines(out)
     return out
 
@@ -182,5 +200,9 @@ def explain_lines(s):
         if L["reach_ms"] >= 1.0 or L["contact_frac"] > 0.2:
             t += "; a hand reaches the other person's body"
         lines.append(t + ".")
+    for i, secs_up in sorted(s.get("arm_raised_last_s", {}).items(), key=lambda kv: -kv[1]):
+        if secs_up >= 0.3:
+            lines.append(f"id{i} has an arm raised above the shoulder for {secs_up:.1f} s of the last {max(float(k) for k in s['last']):.1f} s (a swing, grab or threat is possible; pose heuristic).")
+            break
     lines.append(f"Lead-up type (heuristic): {s['leadup']['type']} - {s['leadup']['reason']}.")
     return lines
