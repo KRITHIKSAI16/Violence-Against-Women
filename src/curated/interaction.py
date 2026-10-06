@@ -156,8 +156,15 @@ def summarize(a, fps, ids, last_seconds=(1.5, 3.0), win_s=2.0, step_s=0.5, extra
             bi = float(np.mean(np.asarray(a["approach_behind_i_j"], bool)[sl]))
             bj = float(np.mean(np.asarray(a["approach_behind_j_i"], bool)[sl]))
             s["actor"], s["target"] = (ids[0], ids[1]) if bi >= bj else (ids[1], ids[0])
-        elif s["label"] in ("approaches", "contact_or_reach"):
+        elif s["label"] == "approaches":
             s["actor"], s["target"] = who(a, sl, ids)
+        elif s["label"] == "contact_or_reach":                           # the hand that reaches, not the one that walks: compare the two reach speeds
+            ri, rj = _mean(np.asarray(a["reach_i_to_j_ms"], float)[sl]), _mean(np.asarray(a["reach_j_to_i_ms"], float)[sl])
+            ri, rj = (ri if ri is not None else 0.0), (rj if rj is not None else 0.0)
+            if abs(ri - rj) >= 0.3:
+                s["actor"], s["target"] = (ids[0], ids[1]) if ri > rj else (ids[1], ids[0])
+            else:
+                s["actor"] = s["target"] = None                          # both or neither: the direction is not claimed
         else:
             s["actor"] = s["target"] = None
     secs = label_seconds(sp)
@@ -198,6 +205,8 @@ def explain_lines(s):
             continue
         a, b = (_nm(sp["actor"]), _nm(sp["target"])) if sp.get("actor") is not None else (_nm(s["ids"][0]), _nm(s["ids"][1]))
         text = PHRASE[sp["label"]].format(a=a, b=b)
+        if sp["label"] == "contact_or_reach" and sp.get("actor") is None:
+            text = f"a hand reaches the other person's body or the two touch ({_nm(s['ids'][0])}, {_nm(s['ids'][1])}; direction not clear)"
         if sp["dist_start_m"] is not None and sp["dist_end_m"] is not None:
             text += f" ({sp['dist_start_m']:.1f} m -> {sp['dist_end_m']:.1f} m" + (f", closing {sp['mean_closing_ms']:.1f} m/s" if sp["mean_closing_ms"] and abs(sp["mean_closing_ms"]) >= 0.15 else "") + ")"
         lines.append(f"{sp['start_s']:.1f}-{sp['end_s']:.1f} s: {text}")

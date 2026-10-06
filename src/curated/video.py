@@ -112,8 +112,8 @@ def _strip(canvas, y0, strip, w, d, f, dmax):
                 cv2.line(canvas, pr[0], pt, (92, 59, 31), 2)
             pr = (pt, i)
     cv2.line(canvas, (xs(min(f, n - 1)), y0), (xs(min(f, n - 1)), y0 + strip), (0, 0, 0), 2)
-    put_text(canvas, "distance (m)", (6, y0 + 12), 0.4, (60, 60, 60), 1)
-    put_text(canvas, "violence starts", (max(6, w - 130), y0 + 12), 0.4, (0, 0, 192), 1)
+    put_text(canvas, f"distance between the two (0-{dmax:.0f} m)", (6, y0 + 16), 0.42, (40, 40, 40), 1)
+    put_text(canvas, "violence starts", (max(6, w - 120), y0 + 16), 0.42, (0, 0, 192), 1)
 
 
 def render_pair_video(video_path, tracks, result, dist_series, out_path):
@@ -136,9 +136,9 @@ def render_pair_video(video_path, tracks, result, dist_series, out_path):
     for k, (f, tid) in enumerate(zip(tracks["frame_idx"].tolist(), tracks["track_id"].tolist())):
         if tid in ids:
             rows.setdefault(f, {})[tid] = k
-    actor = inter["last"][max(inter["last"], key=float)].get("actor")
+    last_actor = inter["last"][max(inter["last"], key=float)].get("actor")
     n = len(d)
-    dmax = max(6.0, float(np.nanmax(d[np.isfinite(d)])) * 1.1) if np.isfinite(d).any() else 6.0
+    dmax = max(3.0, float(np.nanmax(d[np.isfinite(d)])) * 1.25) if np.isfinite(d).any() else 3.0
     f = 0
     while True:
         ok, img = cap.read()
@@ -146,6 +146,8 @@ def render_pair_video(video_path, tracks, result, dist_series, out_path):
             break
         t = f / fps
         pts = {}
+        cur = span_at(sp, t)
+        actor = cur["actor"] if cur is not None and cur.get("actor") is not None else (last_actor if cur is None or cur["label"] in ("approaches", "follows", "approaches_from_behind") else None)
         for tid, k in rows.get(f, {}).items():
             x1, y1, x2, y2 = (int(v) for v in tracks["bbox"][k])
             col = (60, 60, 230) if tid == actor else (230, 140, 40)

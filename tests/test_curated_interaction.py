@@ -87,3 +87,23 @@ def test_partial_visibility_is_stated_and_normal_wording_differs(tmp_path):
     r = analyze_clip({**clip, "start_s": None}, cfg)
     txt = " ".join(r["lines"])
     assert r["is_normal"] and "before the violence" not in txt
+
+
+def test_reach_direction_comes_from_the_reaching_hand_and_is_not_claimed_when_unclear():
+    import numpy as np
+    from src.curated.interaction import summarize
+    n = 60
+    base = {k: np.zeros(n) for k in ["closing_ms", "toward_i", "toward_j", "speed_i", "speed_j", "zone", "ang_i_to_j", "ang_j_to_i", "reach_i_to_j_ms", "reach_j_to_i_ms"]}
+    base.update({"dist_m": np.full(n, 0.8), "contact": np.zeros(n, bool), "follow_i_j": np.zeros(n, bool), "follow_j_i": np.zeros(n, bool), "mutual_facing": np.zeros(n, bool),
+                 "approach_behind_i_j": np.zeros(n, bool), "approach_behind_j_i": np.zeros(n, bool), "looking_back_i": np.zeros(n, bool), "looking_back_j": np.zeros(n, bool)})
+    a = {k: v.copy() for k, v in base.items()}
+    a["reach_j_to_i_ms"][20:50] = 2.5                       # the SECOND person's hand moves to the first
+    s = summarize(a, FPS, (1, 2))
+    sp = [x for x in s["spans"] if x["label"] == "contact_or_reach"]
+    assert sp and sp[0]["actor"] == 2 and sp[0]["target"] == 1 and any("id2 reaches for / touches id1" in l for l in s["lines"])
+    b = {k: v.copy() for k, v in base.items()}
+    b["reach_i_to_j_ms"][20:50] = 2.5
+    b["reach_j_to_i_ms"][20:50] = 2.4
+    sp = [x for x in summarize(b, FPS, (1, 2))["spans"] if x["label"] == "contact_or_reach"]
+    assert sp and sp[0]["actor"] is None
+    assert any("direction not clear" in l for l in summarize(b, FPS, (1, 2))["lines"])
