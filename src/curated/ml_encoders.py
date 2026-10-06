@@ -3,7 +3,7 @@
 Encoders (fallback chain, whichever loads is named in the report):
   internvideo2   OpenGVLab InternVideo2 CLIP (distilled, 0.4B). Loaded with trust_remote_code; its Hub page documents no usage, so the loader probes the
                  remote code for video / text feature functions and raises if it cannot find them. The 6B and the 8B chat variants are not used (too heavy / a language model).
-  xclip          microsoft/xclip-base-patch16-zero-shot (transformers, 8 frames, 224 px): video-text similarity
+  xclip          microsoft/xclip-base-patch16 (transformers, 8 frames, 224 px): video-text similarity
   vjepa2         facebook/vjepa2-vitl-fpc64-256 (embeddings only, no text): strong on motion; reuses src.phase.embed
 
 Zero-shot prompt scoring: each window is compared with short text prompts (contrastive video-text similarity: nothing is generated, no language model
@@ -39,13 +39,14 @@ class XClip:
     name = "xclip"
     has_text = True
 
-    def __init__(self, model_id="microsoft/xclip-base-patch16-zero-shot", device="auto"):
+    def __init__(self, model_id="microsoft/xclip-base-patch16", device="auto"):
         import torch
         from transformers import AutoProcessor, XCLIPModel
         self.torch = torch
         self.device = ("cuda" if torch.cuda.is_available() else "cpu") if device == "auto" else device
         self.processor = AutoProcessor.from_pretrained(model_id)
         self.model = XCLIPModel.from_pretrained(model_id).to(self.device).eval()
+        self.n_frames = int(self.model.config.vision_config.num_frames)         # 8 for this checkpoint, 32 for the zero-shot one
 
     def __call__(self, windows, prompts=ALL_PROMPTS, batch=4):
         """windows: list of (8,H,W,3) uint8 RGB arrays -> {"emb": (n,D), "logits": (n,P)}."""
@@ -134,5 +135,5 @@ def window_frames(video_path, t_starts, win_s, n_frames=N_FRAMES, embed_fps=8.0,
 
 
 def encode_clip(encoder, video_path, t_starts, win_s, n_frames=N_FRAMES):
-    n = 16 if encoder.name == "vjepa2" else n_frames
+    n = getattr(encoder, "n_frames", 16 if encoder.name == "vjepa2" else n_frames)
     return encoder(window_frames(video_path, t_starts, win_s, n))
