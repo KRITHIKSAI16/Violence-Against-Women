@@ -72,3 +72,18 @@ def test_raised_arm_pose_cue_adds_a_sentence_and_raises_concern():
     s0 = summarize(a, FPS, (1, 2))
     s1 = summarize(a, FPS, (1, 2), extra={"arm_raised": {1: r, 2: np.zeros(90, bool)}})
     assert s1["concern_last_s"] > s0["concern_last_s"] and any("arm raised" in l for l in s1["lines"]) and not any("arm raised" in l for l in s0["lines"])
+
+
+def test_reach_without_contact_is_consistent_between_sentence_and_type():
+    L = {"seconds": 3.0, "contact_frac": 0.0, "net_closing_m": 0.0, "dist_end_m": 3.0, "reach_ms": 2.0}
+    assert leadup_type({}, L, 5.0)[0] == "contact or reach at the end"
+    assert leadup_type({}, {**L, "reach_ms": 0.5}, 5.0)[0] == "no visible lead-up"
+
+
+def test_partial_visibility_is_stated_and_normal_wording_differs(tmp_path):
+    from tests.test_curated_pipeline_figures import stage
+    from src.curated.pipeline import analyze_clip
+    cfg, clip, *_ = stage(tmp_path, {1: lambda t: (300, 150, 100.0), 2: lambda t: (340 if t < 1.0 else -500, 150, 100.0)}, 150, cid="Normal_v9", cat="Normal", start=None)
+    r = analyze_clip({**clip, "start_s": None}, cfg)
+    txt = " ".join(r["lines"])
+    assert r["is_normal"] and "before the violence" not in txt

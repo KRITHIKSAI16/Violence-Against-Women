@@ -15,7 +15,7 @@ import warnings
 
 import numpy as np
 
-from src.curated.relation import BENIGN, CONCERN, frame_labels, label_seconds, spans
+from src.curated.relation import BENIGN, CONCERN, THRESH, frame_labels, label_seconds, spans
 from src.video.shots import local_id
 
 CONCERN_W = {"arm_raised": 1.0, "follows": 2.0, "approaches_from_behind": 1.0, "approaches": 0.6, "contact_or_reach": 2.0, "looking_back": 1.5, "close": 0.5,
@@ -117,7 +117,7 @@ def last_window(a, fps, ids, seconds):
 def leadup_type(sp_secs, last, first_dist, raised_s=0.0):
     """-> (type, reason). Rules in LEADUP_RULES order, on the last 3 s of relation seconds and the distances."""
     L = last
-    if sp_secs.get("contact_or_reach", 0) >= 0.3 or (L["contact_frac"] or 0) > 0.2:
+    if sp_secs.get("contact_or_reach", 0) >= 0.3 or (L["contact_frac"] or 0) > 0.2 or (L.get("reach_ms") or 0) >= THRESH["reach_ms"]:
         return LEADUP_RULES[0], f"hands reach the other person's body in the last {L['seconds']:.1f} s"
     if sp_secs.get("follows", 0) >= 1.5:
         return LEADUP_RULES[1], f"one person retraces the other's path for {sp_secs['follows']:.1f} s"
@@ -170,7 +170,7 @@ def summarize(a, fps, ids, last_seconds=(1.5, 3.0), win_s=2.0, step_s=0.5, extra
         up = max(float(np.sum(np.asarray(v, bool)[max(0, n - round(max(last_seconds) * fps)):])) / fps for v in extra["arm_raised"].values())
     typ, why = leadup_type(secs, lt, first, up)
     series, _ = concern_series(a, fps, raised)
-    out = {"ids": [int(ids[0]), int(ids[1])], "duration_s": round(n / fps, 2), "spans": sp, "label_seconds": secs, "first_dist_m": None if first is None else round(first, 2),
+    out = {"ids": [int(ids[0]), int(ids[1])], "duration_s": round(n / fps, 2), "pair_visible_s": round(float(np.isfinite(dd).sum()) / fps, 2), "spans": sp, "label_seconds": secs, "first_dist_m": None if first is None else round(first, 2),
            "min_dist_m": round(float(np.nanmin(dd)), 2) if np.isfinite(dd).any() else None, "last": lasts, "leadup": {"type": typ, "reason": why},
            "concern_last_s": None, "concern_windows": window_scores(series, fps, win_s, step_s)}
     w = series[max(0, n - round(max(last_seconds) * fps)):]
@@ -191,6 +191,8 @@ def _nm(i):
 def explain_lines(s):
     """Plain sentences: each relation span, the last seconds, and the lead-up type."""
     lines = []
+    if s.get("pair_visible_s") is not None and s["pair_visible_s"] < 0.8 * s["duration_s"]:
+        lines.append(f"The two are measurable together for {s['pair_visible_s']:.1f} s of the {s['duration_s']:.1f} s shown (the rest: not both detected).")
     for sp in s["spans"]:
         if sp["label"] in ("apart", "close_unclear") and sp["end_s"] - sp["start_s"] < 1.0:
             continue
@@ -206,7 +208,7 @@ def explain_lines(s):
             t += f"; {_nm(L['actor'])} moves toward {_nm(L['target'])}"
             if L["target_faces_away_deg"] is not None and L["target_faces_away_deg"] > 110:
                 t += f", who is facing away"
-        if L["reach_ms"] >= 1.0 or L["contact_frac"] > 0.2:
+        if L["reach_ms"] >= THRESH["reach_ms"] or L["contact_frac"] > 0.2:
             t += "; a hand reaches the other person's body"
         lines.append(t + ".")
     for i, secs_up in sorted(s.get("arm_raised_last_s", {}).items(), key=lambda kv: -kv[1]):
