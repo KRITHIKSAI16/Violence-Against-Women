@@ -26,7 +26,7 @@ New code only: nothing in `STATE.md`, `STATUS_REPORT.md`, `src/curated/` or earl
 | `edgecases.py` | duplicate groups (frame hash), too-few-clips check, clip flags, label-word scan |
 | `cv.py` | models, fusion (late / early / stack), threshold choice, repeated stratified group cross-validation |
 | `metrics.py` | threshold and score metrics, bootstrap intervals, per-category recall, same-resolution AUC |
-| `pipeline.py`, `stages.py`, `report.py` | the stages shared by both tasks, GPU stages, the evaluation report |
+| `pipeline.py`, `stages.py`, `report.py`, `report_html.py` | the stages shared by both tasks, GPU stages, the evaluation report (`report.md`, csv, json) and the single-file `index.html` (system, data, performance, failures, every clip) |
 | `classtrim/run.py`, `classfull/run.py` | the CLIs (`--stage`, `--out-root`, `--no-captions`) |
 
 ## Edge cases and what is done about them

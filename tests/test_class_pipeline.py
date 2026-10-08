@@ -163,6 +163,10 @@ def test_train_stage_end_to_end_trim(tmp_path, monkeypatch):
     lines = (out.parent / "predictions.csv").read_text(encoding="utf-8").splitlines()
     assert len(lines) == 29 and lines[0].startswith("clip_id,category,label,")
     assert (tmp_path / "out" / "text" / "Normal" / "Normal_v15.json").exists()
+    page = (out.parent / "index.html").read_text(encoding="utf-8")
+    for part in ("What the system does", "How well it works", "Where it fails", "Every clip", "Confusion matrix", "Is it learning behaviour", "data:image/png;base64", "Normal_v15"):
+        assert part in page
+    assert page.count("<img") >= 3 and "chart unavailable" not in page
 
 
 def test_train_stage_reports_why_it_does_not_evaluate(tmp_path):
@@ -175,6 +179,8 @@ def test_train_stage_reports_why_it_does_not_evaluate(tmp_path):
     m = json.loads((out.parent / "metrics.json").read_text(encoding="utf-8"))
     assert m["evaluated"] is False and m["clips_per_category"] == {"Assassination": 4, "Normal": 20}
     assert not (out.parent / "predictions.csv").exists()
+    page = (out.parent / "index.html").read_text(encoding="utf-8")
+    assert "not evaluated: 4 violent and 20 non-violent clips" in page and "Assassination" in page
 
 
 def test_captions_switch_adds_the_full_document_blocks(tmp_path):

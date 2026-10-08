@@ -19,7 +19,9 @@ Every clip, violent or Normal, is judged on its **last 3 seconds** (`span_s`): t
 
 Models: a logistic regression per block (video embeddings X-CLIP / V-JEPA 2 / InternVideo2; sentence embeddings of the text; TF-IDF of the text; geometry numbers) and three fusions (late average, stacking, early concatenation). Baselines: filming `style` and clip `length`.
 
-## Reading the report (`report/report.md`)
+## Reading the report
+**Start with `report/index.html`**: one self-contained page (open it from Drive or download it) that explains what the system does, how well it works (all methods against the shortcut baselines, ROC / PR / calibration charts) and where it fails (missed and falsely alarmed clips with the text the models saw, error rate by category / pair found / lead-up / length / resolution, hardest clips, a filterable table of every clip). `report.md` has the same numbers as plain text.
+
 Accuracy, balanced accuracy, precision, recall, specificity, F1, MCC, ROC-AUC, PR-AUC, Brier, expected calibration error, each with a 95% bootstrap interval over clips; confusion matrix, recall per category, the misclassified clips with the text the model saw, and the **verdict**, which only claims behaviour when the best model beats both baselines and holds on clips of the same resolution. The best model is picked on the same cross-validation it is reported on, so its numbers are optimistic; the report says so.
 
 ## If something fails

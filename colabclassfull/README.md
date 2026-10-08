@@ -23,6 +23,8 @@ One notebook, `VAW_class_full.ipynb`. Label = the category folder (Normal -> non
 The whole video: the video features, the text of what happens between the two main people over the whole clip (+ captions), and the geometry numbers. Because the act itself is in the video, expect higher scores than for the trim task; the report puts the same baselines next to every model: filming `style` (Normal clips come from another source, earlier work found style alone separates them with AUC 0.99) and clip `length`. The verdict only claims behaviour when the best model beats both and holds on clips of the same resolution.
 
 ## Reading the report
+**Start with `report/index.html`**: one self-contained page (open it from Drive or download it) that explains what the system does, how well it works (all methods against the shortcut baselines, ROC / PR / calibration charts) and where it fails (missed and falsely alarmed clips with the text the models saw, error rate by category / pair found / lead-up / length / resolution, hardest clips, a filterable table of every clip). `report.md` has the same numbers as plain text.
+
 `report/report.md` has accuracy, balanced accuracy, precision, recall, specificity, F1, MCC, ROC-AUC, PR-AUC, Brier, expected calibration error (95% bootstrap intervals over clips), the confusion matrix, recall per category, the misclassified clips with their text, and the verdict. The best model is picked on the same cross-validation it is reported on, so its numbers are optimistic. Near-duplicate videos are kept in the same fold (frame hash) so a re-upload cannot sit in training and test.
 
 ## If something fails

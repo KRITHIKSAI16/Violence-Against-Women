@@ -11,6 +11,7 @@ import numpy as np
 
 from src.classcommon import metrics as M
 from src.classcommon.pipeline import BASELINES
+from src.classcommon.report_html import write_html, write_not_evaluated_html
 
 COLS = [("auc", "AUC"), ("pr_auc", "PR-AUC"), ("accuracy", "Acc"), ("balanced_accuracy", "BalAcc"), ("precision", "Prec"), ("recall", "Recall"), ("specificity", "Spec"),
         ("f1", "F1"), ("mcc", "MCC"), ("brier", "Brier"), ("ece", "ECE")]
@@ -95,11 +96,12 @@ def write_not_evaluated(out_dir, task, message, recs, docs):
           f"{len(docs)} text documents are in the text folder; every clip has its features cached, so a rerun after adding clips is fast."]
     (out / "report.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     (out / "metrics.json").write_text(json.dumps({"task": task, "evaluated": False, "message": message, "clips_per_category": cats}, indent=1), encoding="utf-8")
+    write_not_evaluated_html(out, task, message, recs, docs)
     return out / "report.md"
 
 
 def write_report(out_dir, task, cfg, recs, data, cvres, zs, flags, groups_res, docs, notes, message):
-    """Evaluate the cross-validated probabilities and write report.md, metrics.json, predictions.csv, errors.csv and roc.png in out_dir."""
+    """Evaluate the cross-validated probabilities and write report.md, metrics.json, predictions.csv, errors.csv and roc.png and index.html (the single-file HTML report) in out_dir."""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     cl = cfg["classify"]
@@ -130,7 +132,7 @@ def write_report(out_dir, task, cfg, recs, data, cvres, zs, flags, groups_res, d
     if wrong:
         md += [f"## Misclassified clips ({len(wrong)}) with the text the models saw", ""] + [
             f"- **{recs[i]['clip_id']}** (true {'violent' if y[i] else 'non-violent'}, P(violent) {cvres[best]['proba'][i]:.2f}): {docs[recs[i]['clip_id']][:400]}" for i in wrong[:40]] + [""]
-    md += ["## Notes and edge cases", ""] + [f"- {n}" for n in notes] + ["", "![ROC](roc.png)", ""]
+    md += ["## Notes and edge cases", ""] + [f"- {n}" for n in notes] + ["", "![ROC](roc.png)", "", "A fuller single-page version with charts and failure analysis: `index.html`.", ""]
     (out / "report.md").write_text("\n".join(md), encoding="utf-8")
     (out / "metrics.json").write_text(json.dumps({"task": task, "evaluated": True, "message": message, "best": best, "verdict": verdict(rows, best, same),
                                                    "methods": {k: {"metrics": v["metrics"], "ci": v["ci"], "auc_per_repeat": v["auc_per_repeat"]} for k, v in rows.items()}},
@@ -146,4 +148,5 @@ def write_report(out_dir, task, cfg, recs, data, cvres, zs, flags, groups_res, d
         for i in wrong:
             w.writerow([recs[i]["clip_id"], recs[i]["category"], int(y[i]), int(cvres[best]["pred"][i]), f"{cvres[best]['proba'][i]:.4f}", docs[recs[i]["clip_id"]]])
     _roc_png(out / "roc.png", y, cvres, [n for n in order[:5]] + [b for b in BASELINES if b in cvres and b not in order[:5]])
+    write_html(out, task, cfg, recs, data, cvres, rows, order, best, verdict(rows, best, same), same, zs, flags, groups_res, docs, notes, message)
     return out / "report.md"
