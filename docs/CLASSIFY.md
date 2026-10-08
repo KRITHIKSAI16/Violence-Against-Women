@@ -48,3 +48,6 @@ New code only: nothing in `STATE.md`, `STATUS_REPORT.md`, `src/curated/` or earl
 * With very few clips per class the intervals are wide; the report shows them and no claim is made without the counts.
 * The trim task has no time-to-T analysis and the report does not compare the two tasks automatically: compare the two `metrics.json` files.
 * The GPU stages (captioning, encoders, tracking) and Drive access are not exercised by the unit tests; the logic around them is, with fake encoders and a fake captioner.
+
+## Jury showcase (`src/classcommon/showcase.py`, `python -m src.classfull.showcase --out-root <classfull folder>`)
+Reads the finished stages (no GPU) and writes `<out-root>/showcase/`: `features_overview.png` (cue shares, closest distance, concern score, classifier AUCs with the style / length baselines, all videos), `snapshot_<k>_<violent>_vs_<Normal>.png` (16:9 slide picture: key frames with the pair boxed, distance curve, behaviour timeline, numbers, out-of-fold model score) and `compare_<k>_...mp4` (the two videos side by side with live distance strip). The example pair is chosen by a rule (most vs least reach / follow / approach evidence among videos of 8-30 s with a measured pair), not at random; override with `--violent` / `--normal`. Cues and the concern score are heuristics, meters are approximate.
