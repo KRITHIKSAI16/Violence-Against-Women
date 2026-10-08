@@ -3,7 +3,7 @@
 Live status. `PROJECT_BRIEF.md` = stable scope/spec. `docs/STATUS_REPORT.md` = readable summary with all results and the decisions log (share this with the team).
 `docs/ARCHITECTURE.md` = how it is built and every file format. `docs/VERIFY_CONTEXT.md` = how to check every output.
 
-Last updated: 2026-10-03.  Code: everything below is committed and pushed to `origin/main`; `python -m pytest -q` passes (178 tests).
+Last updated: 2026-10-08.  Code: everything below is committed and pushed to `origin/main`; `python -m pytest -q` passes (178 tests).
 
 ---
 
@@ -23,6 +23,8 @@ Last updated: 2026-10-03.  Code: everything below is committed and pushed to `or
 | Story video + report page (`story_video.py`, `story_report.py`, nb 08) | **done, run on Colab (60 showcase clips, 8 min)** | review the page by eye; annotation sheets written to `report/benchmark/` |
 | Annotation benchmark (`benchmark.py`) | **built, tested; waiting for the team's annotations** | the step that gives real precision / recall |
 | M3–M7 | covered by `windows.py` / `learn.py` + the benchmark | no separate M3 module |
+| colab2 curated flow (`src/curated/`, `colab2/`, `docs/CURATED.md`) | **built, tested** | clips trimmed at human start time T; separate from Phase 1 |
+| Classifiers `colabclasstrim` / `colabclassfull` (`src/classcommon|classtrim|classfull/`, `configs/classify.yaml`, `docs/CLASSIFY.md`) | **built, 59 tests; not yet run on Colab/GPU** | violent vs non-violent; trim = last 3 s of colab2 clips, full = whole videos; per-block models + fusion, nested grouped CV, style/length shortcut baselines; optional Layer B captions (Qwen3-VL) |
 | Phase II (M10–M13) | not started, by design | |
 
 ## What to do next (in order)
@@ -32,7 +34,8 @@ Last updated: 2026-10-03.  Code: everything below is committed and pushed to `or
 3. **Team annotation** (notebook 08 steps 4-5): 4 sheets, about 60 clips; each person annotates without looking at the system's output; then `benchmark evaluate`; rerun step 6 so the page includes the benchmark table.
 4. Discuss with the supervisor how to frame the result (`docs/STATUS_REPORT.md` section 5 and 8).
 5. Only after the benchmark says where the errors are: consider a larger pose detector (about 40% of clips have no usable pair), calibrating `story.cue_weights`, a CCTV-style Normal subset.
-6. Phase II hand-off is described in `docs/ARCHITECTURE.md` section 8.
+6. Run `colabclasstrim` (after colab2 `analyze` + `ml`) and `colabclassfull` on Colab (T4); try `MAX_CLIPS = 20` first. Read `report/report.md` verdict; compare the two `metrics.json` files by hand. Record results in `docs/STATUS_REPORT.md` once run.
+7. Phase II hand-off is described in `docs/ARCHITECTURE.md` section 8.
 
 ## Key results so far (real numbers; details and tables in docs/STATUS_REPORT.md)
 
@@ -68,6 +71,7 @@ and Youden/balanced accuracy; generated data stays out of git; Claude Code may c
 * How to frame the result for the supervisor: description + evaluation of limits (recommended) vs. a category classifier (not supported by the data).
 * After the benchmark: which cues are reliable enough to keep as "concern" cues, and the cue weights.
 * A CCTV-style subset of Normal clips for a fairer comparison (needs a decision on how to select it without using the label).
+* Classifiers: does the best model beat the `style` and `length` baselines and hold on same-resolution clips? Does Layer B (language-model captions) help (compare `text_*_geom` vs `text_*_full`) and is it acceptable given the no-LLM rule? Too few violent clips with start times T may block the trim task (`cv.min_per_class` = 10).
 * Whether to reintroduce UCF-Crime later as a second dataset (not needed now).
 
 ## How to keep this file useful

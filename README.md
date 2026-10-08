@@ -5,7 +5,7 @@ what happens between the people before any violent act** (who approaches, follow
 of what such geometry can and cannot tell. Dataset: ExtrAnom (Assassination, Chain_Snatching, Harassment, Kidnapping, Normal, Stalking; 793 clips).
 
 **Start here (in this order):** `docs/STATUS_REPORT.md` (what we did, found and decided, in plain language - share this) → `PROJECT_BRIEF.md` (scope and spec) → `STATE.md` (live status and next steps) →
-`docs/ARCHITECTURE.md` (how it is built) → `docs/VERIFY_CONTEXT.md` (how to check every output). If you use Claude Code, it reads `CLAUDE.md` first.
+`docs/ARCHITECTURE.md` (how it is built) → `docs/VERIFY_CONTEXT.md` (how to check every output). Newer add-ons: `docs/CURATED.md` (colab2) and `docs/CLASSIFY.md` (violent vs non-violent classifiers). If you use Claude Code, it reads `CLAUDE.md` first.
 
 ## Pipeline
 ```
@@ -21,6 +21,10 @@ configs/extran.yaml        laptop config (sample data)       configs/colab.yaml 
 src/data/                  M1 manifest, M2 preprocess        src/assm/            M8a tracks, M8b score, M9 rule gate (baseline), calibrate, checks
 src/context/               deep context layer (stages A-D)   src/report/          story video, report page, benchmark (+ older baseline report)
 tests/                     pytest (synthetic data, no GPU)   colab/               notebooks 01-08 + instructions
+src/curated/, colab2/      hand-picked clips cut at human start time T (docs/CURATED.md)
+src/classcommon/, src/classtrim/, src/classfull/, configs/classify.yaml
+colabclasstrim/            notebook: will violence follow? (clips cut at T, last 3 s; needs a finished colab2 run)
+colabclassfull/            notebook: is violence in this video? (whole videos, label = category folder)   (docs/CLASSIFY.md)
 docs/                      status report, architecture, plan, verification guides
 data/sample/               12 clips, LOCAL ONLY (git-ignored; get them from the team Drive)
 ```

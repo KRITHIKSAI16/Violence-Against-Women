@@ -5,7 +5,7 @@ Read these fully before doing anything, in this order:
 2. `PROJECT_BRIEF.md` — project context, dataset (793 clips), module spec (M1–M9), working style, pitfalls.
 3. `STATE.md` — live status and next steps.
 4. `docs/ARCHITECTURE.md` — data flow, every file format, the deep context layer, design decisions, Phase II hand-off.
-5. `docs/PHASE1_PLAN.md`, and the verification guides `docs/VERIFY_CONTEXT.md` (current), `VERIFY_M9.md` / `VERIFY_M8.md` (baselines).
+5. `docs/CURATED.md` (colab2: hand-picked clips with human start times T) and `docs/CLASSIFY.md` (colabclasstrim / colabclassfull: violent vs non-violent classifiers), then `docs/PHASE1_PLAN.md`, and the verification guides `docs/VERIFY_CONTEXT.md` (current), `VERIFY_M9.md` / `VERIFY_M8.md` (baselines).
 
 ## Commands (run from the repo root)
 ```
@@ -16,6 +16,7 @@ python -m src.context.features | scene | story | learn                          
 python -m src.report.story_report | story_video <clip> | benchmark make/evaluate  # deliverable and benchmark
 # all take --config configs/colab.yaml on Colab; several take --clips A B, --force, --set key=value
 ```
+Newer, separate paths (they import the Phase 1 modules and never edit them): `python -m src.curated.run` (colab2, notebook `colab2/`), `python -m src.classtrim.run` and `python -m src.classfull.run` (stages `--stage ...`, `--out-root`, `--no-captions`; notebooks `colabclasstrim/`, `colabclassfull/`; settings `configs/classify.yaml`; shared code `src/classcommon/`).
 Laptop sample: 12 clips in `data/sample/<Category>/` (git-ignored; ask the team). Colab runs the full set from Drive through notebooks `colab/01..08`.
 
 ## Rules
@@ -25,8 +26,14 @@ Laptop sample: 12 clips in `data/sample/<Category>/` (git-ignored; ask the team)
 - Be honest in results: compare every category with Normal; Normal is a different source (style-only AUC 0.99), so never report category rates as accuracy; say when thresholds are tuned in-sample; label heuristics as heuristics
   (cue weights are untuned, the video cut is a heuristic, meters are approximate).
 - Never commit videos, tracks, Drive data, generated outputs (`data/context`, `data/report`, ...) or secrets. Never put the GitHub token in a file or notebook.
-- No future prediction (Phase II), no language model in the pipeline, no identity / gender / age inference, no `src/annotate/` LLM layer.
+- No future prediction (Phase II), no language model in the pipeline (one exception: the optional, switchable Layer B frame captions in `src/classcommon/vlm_caption.py`, ablated in the classify report; use `--no-captions` / `USE_CAPTIONS=False` to turn it off), no identity / gender / age inference, no `src/annotate/` LLM layer.
 - Update `STATE.md` when status or decisions change and `docs/STATUS_REPORT.md` when results change; edit `PROJECT_BRIEF.md` only if scope, dataset or constraints change.
+
+## Classification pipelines (read `docs/CLASSIFY.md` before touching them)
+- trim = "will violence follow?" (colab2 clips, every clip judged on its last 3 s); full = "is violence in this video?" (whole videos, label = category folder, no start times). Outputs go to `VAW_results/classtrim/` and `VAW_results/classfull/`.
+- Text documents are generated from numbers with identical wording for every clip and never contain violence/category words; keep it that way (leakage). Always report the `style` and `length` baselines next to every model; the verdict only claims behaviour when the best model beats both and holds on same-resolution clips.
+- Best-model numbers are optimistic (selected on the same CV). Thresholds, PCA, imputers and fusion weights are fitted inside training folds only. Keep near-duplicate videos in one fold.
+- GPU stages (captions, encoders, tracking) are not unit-tested; the logic around them is, with fake encoders / captioner (`tests/class_helpers.py`).
 
 ## Git
 The repo owner authorized Claude Code to commit and push to `origin main` in the owner's sessions (small commits, no force-push). If you are working for another team member, ask your user before pushing.
